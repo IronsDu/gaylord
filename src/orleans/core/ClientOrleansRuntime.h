@@ -2,8 +2,10 @@
 
 #include <memory>
 #include <brynet/utils/NonCopyable.h>
+#include <gayrpc/utils/UtilsWrapper.h>
 #include <absl/strings/str_split.h>
 #include <orleans/core/ServiceMetaManager.h>
+#include <orleans/core/orleans_service.gayrpc.h>
 
 namespace orleans { namespace core {
 
@@ -124,8 +126,8 @@ namespace orleans { namespace core {
 
     private:
         const ServiceMetaManager::Ptr                                   mServiceMetaManager;
-        const brynet::net::TcpService::PTR                              mTCPService;
-        const brynet::net::AsyncConnector::PTR                          mTCPConnector;
+        const brynet::net::TcpService::Ptr                              mTCPService;
+        const brynet::net::AsyncConnector::Ptr                          mTCPConnector;
 
         std::mutex                                                      mOrleansConnectionGrard;
         std::map<IPAddr, orleans::core::OrleansServiceClient::PTR>      mOrleans;

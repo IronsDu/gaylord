@@ -2,8 +2,11 @@
 
 #include <cpp_redis/core/client.hpp>
 #include <orleans/core/ServiceMetaManager.h>
+#include <orleans/core/CoreType.h>
 
 namespace orleans { namespace impl {
+
+    using namespace orleans::core;
 
     class RedisServiceMetaManager : public ServiceMetaManager
     {
@@ -20,7 +23,7 @@ namespace orleans { namespace impl {
                 if (status == cpp_redis::client::connect_state::dropped) {
                     std::cout << "client disconnected from " << host << ":" << port << std::endl;
                 }
-                });
+            });
         }
 
     private:
@@ -32,7 +35,7 @@ namespace orleans { namespace impl {
 
         void    QueryGrainAddr(GrainTypeName grainTypeName, std::string grainName, ServiceMetaManager::QueryGrainCompleted caller)
         {
-            auto grainID = grainTypeName + ":" + grainName;
+            const auto grainID = grainTypeName + ":" + grainName;
             // 从Redis里查找路由信息
             mRedisClient->get(grainID, [=](cpp_redis::reply& reply) {
                 if (!reply.is_null())
@@ -43,20 +46,31 @@ namespace orleans { namespace impl {
                 {
                     // 若不存在则获取处理此类型服务的所有服务器
                     mRedisClient->lrange(grainTypeName, 0, -1, [=](cpp_redis::reply& reply) {
-                        if (reply.is_array())
+                        if (!reply.is_array())
                         {
-                            auto addrs = reply.as_array();
-                            //随机一个节点服务器
-                            auto addr = addrs[std::rand() % addrs.size()].as_string();
-                            mRedisClient->set(grainID, addr, [=](cpp_redis::reply& reply) {
-                                if (reply.ok())
-                                {
-                                    caller(addr);
-                                }
-                                });
-                            mRedisClient->commit();
+                            return;
                         }
+                        auto addrs = reply.as_array();
+                        if(addrs.empty())
+                        {
+                            return;
+                        }
+
+                        //随机一个节点服务器
+                        auto addr = addrs[std::rand() % addrs.size()].as_string();
+                        mRedisClient->setnx(grainID, addr, [=](cpp_redis::reply& reply) {
+                            if (!reply.ok() || !reply.is_integer())
+                            {
+                                return;
+                            }
+                            if (reply.as_integer() == 1)
+                            {
+                                caller(addr);
+                                return;
+                            }
                         });
+                        mRedisClient->commit();
+                    });
                     mRedisClient->commit();
                 }
                 });

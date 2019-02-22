@@ -8,9 +8,11 @@
 #include <brynet/net/TCPService.h>
 #include <brynet/net/ListenThread.h>
 #include <gayrpc/core/GayRpcTypeHandler.h>
+#include <gayrpc/core/GayRpcType.h>
 
 #include <orleans/core/CoreType.h>
 #include <orleans/core/ServiceMetaManager.h>
+#include <orleans/core/orleans_service.pb.h>
 
 namespace orleans { namespace core {
 
@@ -53,7 +55,7 @@ namespace orleans { namespace core {
 
             }
 
-            const auto it = mServceGrainCreators.find(grainType); it == mServceGrainCreators.end();
+            const auto it = mServceGrainCreators.find(grainType);
             if (it == mServceGrainCreators.end())
             {
                 return nullptr;
@@ -83,14 +85,14 @@ namespace orleans { namespace core {
                     [=](const gayrpc::core::RpcMeta& meta,
                         const google::protobuf::Message& message,
                         const gayrpc::core::UnaryHandler& next,
-                        InterceptorContextType context)
+                        gayrpc::core::InterceptorContextType context)
                     {
                         return next(meta, message, std::move(context));
                     },
                     [=](const gayrpc::core::RpcMeta& meta,
                         const google::protobuf::Message& message,
                         const gayrpc::core::UnaryHandler& next,
-                        InterceptorContextType context)
+                        gayrpc::core::InterceptorContextType context)
                     {
                         // 处理业务层RPC服务的输出(即Response)
 
@@ -114,8 +116,8 @@ namespace orleans { namespace core {
 
     private:
         const ServiceMetaManager::Ptr                                   mServiceMetaManager;
-        const brynet::net::TcpService::PTR                              mTCPService;
-        const brynet::net::ListenThread::PTR                            mListenThread;
+        const brynet::net::TcpService::Ptr                              mTCPService;
+        const brynet::net::ListenThread::Ptr                            mListenThread;
 
         std::mutex                                                      mGrainsGrard;
         std::map<std::string, gayrpc::core::RpcTypeHandleManager::PTR>  mServiceGrains;
