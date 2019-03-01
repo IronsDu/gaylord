@@ -45,7 +45,8 @@ int main()
 {
     brynet::net::base::InitSocket();
 
-    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>();
+    auto mainLoop = std::make_shared<brynet::net::EventLoop>();
+    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
     redisServiceMetaManager->init("127.0.0.1", 6379);
 
     auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(redisServiceMetaManager);

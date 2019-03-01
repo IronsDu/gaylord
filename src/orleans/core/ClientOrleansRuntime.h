@@ -29,11 +29,12 @@ namespace orleans { namespace core {
         }
 
         template<typename T>
-        auto takeGrain(std::string grainName)
+        auto takeGrain(std::string grainID)
         {
+            auto grainTypeName = T::GetServiceTypeName();
+            auto grainUniqueName = grainTypeName + ":" + grainID;
             auto sharedThis = shared_from_this();
 
-            auto grainTypeName = T::GetServiceTypeName();
             auto grainRpcHandlerManager = std::make_shared<gayrpc::core::RpcTypeHandleManager>();
 
             auto grain = T::Create(grainRpcHandlerManager,
@@ -44,17 +45,19 @@ namespace orleans { namespace core {
                 {
                     return next(meta, message, std::move(context));
                 },
-                [=](const gayrpc::core::RpcMeta& meta,
+                [=, serviceMetaManager = mServiceMetaManager](const gayrpc::core::RpcMeta& meta,
                     const google::protobuf::Message& message,
                     const gayrpc::core::UnaryHandler& next,
                     InterceptorContextType context)
                 {
+                    auto seq_id = meta.request_info().sequence_id();
+                    auto timeoutSecond = meta.request_info().timeout();
                     // outboundInterceptor
                     // 处理业务层RPC Client的输出(即Request)
                     // 将业务RPC包裹在 OrleansRequest
                     orleans::core::OrleansRequest request;
                     request.set_grain_type(grainTypeName);
-                    request.set_grain_name(grainName);
+                    request.set_grain_name(grainUniqueName);
                     *request.mutable_meta() = meta;
                     request.set_body(message.SerializeAsString());
 
@@ -65,19 +68,46 @@ namespace orleans { namespace core {
                     auto caller = [=](std::string addr) {
                         std::vector<std::string> strs = absl::StrSplit(addr, ":");
                         assert(strs.size() == 2);
-
                         sharedThis->asyncOrleansConnectionCreated(std::make_pair(strs[0],
                             std::stoll(strs[1])),
                             [=, context = std::move(context)](orleans::core::OrleansServiceClient::PTR orleanClient) {
-                            orleanClient->Request(request, [=, context = std::move(context)](const orleans::core::OrleansResponse& response, const gayrpc::core::RpcError&) {
-                                // 将收到的response交给用户层RPC
-                                InterceptorContextType context;
-                                grainRpcHandlerManager->handleRpcMsg(response.meta(), response.body(), context);
-                            });
+                            auto timeout = std::chrono::seconds(timeoutSecond > 0 ? timeoutSecond : 10);
+                            orleanClient->Request(request, 
+                                [=, context = std::move(context)](const orleans::core::OrleansResponse& response, const gayrpc::core::RpcError& error) {
+                                    // 将收到的response交给用户层RPC
+                                    if (error.failed())
+                                    {
+                                        gayrpc::core::RpcMeta errorMeta;
+                                        errorMeta.set_type(gayrpc::core::RpcMeta::RESPONSE);
+                                        errorMeta.mutable_response_info()->set_sequence_id(seq_id);
+                                        errorMeta.mutable_response_info()->set_failed(true);
+                                        errorMeta.mutable_response_info()->set_error_code(error.code());
+                                        errorMeta.mutable_response_info()->set_reason(error.reason());
+                                        try
+                                        {
+                                            InterceptorContextType context;
+                                            grainRpcHandlerManager->handleRpcMsg(errorMeta, "", std::move(context));
+                                        }
+                                        catch(...)
+                                        { }
+                                    }
+                                    else
+                                    {
+                                        InterceptorContextType context;
+                                        grainRpcHandlerManager->handleRpcMsg(response.meta(), response.body(), context);
+                                    }
+                                    // 每次调用成功都处理此grain地址状态
+                                    serviceMetaManager->processAddrStatus(grainUniqueName, addr, true);
+                                },
+                                timeout,
+                                [=]() {
+                                    // 超时处理此grain地址状态
+                                    serviceMetaManager->processAddrStatus(grainUniqueName, addr,false);
+                                });
                             next(meta, *p, std::move(context));
                         });
                     };
-                    mServiceMetaManager->QueryGrainAddr(grainTypeName, grainName, caller);
+                    serviceMetaManager->queryGrainAddr(grainTypeName, grainUniqueName, caller);
                 });
 
             return grain;

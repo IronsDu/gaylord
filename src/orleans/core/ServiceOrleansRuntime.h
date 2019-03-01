@@ -45,14 +45,13 @@ namespace orleans { namespace core {
                 }, nullptr, nullptr, nullptr, 1024 * 1024, std::chrono::seconds(10));
         }
 
-        gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, std::string grainName)
+        gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, std::string grainUniqueName)
         {
             std::lock_guard<std::mutex> lck(mGrainsGrard);
 
-            if (const auto it = mServiceGrains.find(grainName); it != mServiceGrains.end())
+            if (const auto it = mServiceGrains.find(grainUniqueName); it != mServiceGrains.end())
             {
-                return it->second;;
-
+                return it->second;
             }
 
             const auto it = mServceGrainCreators.find(grainType);
@@ -61,10 +60,12 @@ namespace orleans { namespace core {
                 return nullptr;
             }
 
-            auto grain = it->second(grainName);
+            auto grain = it->second(grainUniqueName);
             if (grain)
             {
-                mServiceGrains[grainName] = grain;
+                mServiceGrains[grainUniqueName] = grain;
+                // 开启存活定时器
+                mServiceMetaManager->startActiveTimer(grainUniqueName);
             }
 
             return grain;
@@ -77,8 +78,8 @@ namespace orleans { namespace core {
 
             auto typeName = T::GetServiceTypeName();
 
-            mServiceMetaManager->Register(typeName, addr);
-            mServceGrainCreators[typeName] = [](std::string grainName) {
+            mServiceMetaManager->registerGrain(typeName, addr);
+            mServceGrainCreators[typeName] = [](std::string grainUniqueName) {
                 // 创建Grain 服务
                 auto grainRpcHandlerManager = std::make_shared<gayrpc::core::RpcTypeHandleManager>();
                 gayrpc::core::ServiceContext serviceContext(grainRpcHandlerManager,

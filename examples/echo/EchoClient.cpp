@@ -15,12 +15,13 @@ int main()
 {
     brynet::net::base::InitSocket();
 
-    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>();
+    auto mainLoop = std::make_shared<brynet::net::EventLoop>();
+    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
     redisServiceMetaManager->init("127.0.0.1", 6379);
 
     auto clientOrleansRuntime = std::make_shared<ClientOrleansRuntime>(redisServiceMetaManager);
     // 获取Grain
-    auto echoServer1Grain = clientOrleansRuntime->takeGrain<dodo::test::EchoServerClient>("echo_server_1");
+    auto echoServer1Grain = clientOrleansRuntime->takeGrain<dodo::test::EchoServerClient>("1");
 
     for(auto i = 0; i < 10; i++)
     {
