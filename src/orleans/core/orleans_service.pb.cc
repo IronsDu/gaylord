@@ -31,6 +31,16 @@ class OrleansResponseDefaultTypeInternal {
   ::google::protobuf::internal::ExplicitlyConstructed<OrleansResponse>
       _instance;
 } _OrleansResponse_default_instance_;
+class OrleansReleaseRequestDefaultTypeInternal {
+ public:
+  ::google::protobuf::internal::ExplicitlyConstructed<OrleansReleaseRequest>
+      _instance;
+} _OrleansReleaseRequest_default_instance_;
+class OrleansReleaseResponseDefaultTypeInternal {
+ public:
+  ::google::protobuf::internal::ExplicitlyConstructed<OrleansReleaseResponse>
+      _instance;
+} _OrleansReleaseResponse_default_instance_;
 }  // namespace core
 }  // namespace orleans
 namespace protobuf_orleans_5fservice_2eproto {
@@ -78,7 +88,49 @@ void InitDefaultsOrleansResponse() {
   ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsOrleansResponseImpl);
 }
 
-::google::protobuf::Metadata file_level_metadata[2];
+void InitDefaultsOrleansReleaseRequestImpl() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
+  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
+#else
+  ::google::protobuf::internal::InitProtobufDefaults();
+#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
+  {
+    void* ptr = &::orleans::core::_OrleansReleaseRequest_default_instance_;
+    new (ptr) ::orleans::core::OrleansReleaseRequest();
+    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::orleans::core::OrleansReleaseRequest::InitAsDefaultInstance();
+}
+
+void InitDefaultsOrleansReleaseRequest() {
+  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
+  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsOrleansReleaseRequestImpl);
+}
+
+void InitDefaultsOrleansReleaseResponseImpl() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
+  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
+#else
+  ::google::protobuf::internal::InitProtobufDefaults();
+#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
+  {
+    void* ptr = &::orleans::core::_OrleansReleaseResponse_default_instance_;
+    new (ptr) ::orleans::core::OrleansReleaseResponse();
+    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::orleans::core::OrleansReleaseResponse::InitAsDefaultInstance();
+}
+
+void InitDefaultsOrleansReleaseResponse() {
+  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
+  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsOrleansReleaseResponseImpl);
+}
+
+::google::protobuf::Metadata file_level_metadata[4];
 
 const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
@@ -87,7 +139,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansRequest, grain_type_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansRequest, grain_name_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansRequest, grain_unique_name_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansRequest, meta_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansRequest, body_),
   ~0u,  // no _has_bits_
@@ -97,15 +149,31 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   ~0u,  // no _weak_field_map_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansResponse, meta_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansResponse, body_),
+  ~0u,  // no _has_bits_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansReleaseRequest, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansReleaseRequest, grain_type_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansReleaseRequest, grain_unique_name_),
+  ~0u,  // no _has_bits_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::orleans::core::OrleansReleaseResponse, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::orleans::core::OrleansRequest)},
   { 9, -1, sizeof(::orleans::core::OrleansResponse)},
+  { 16, -1, sizeof(::orleans::core::OrleansReleaseRequest)},
+  { 23, -1, sizeof(::orleans::core::OrleansReleaseResponse)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
   reinterpret_cast<const ::google::protobuf::Message*>(&::orleans::core::_OrleansRequest_default_instance_),
   reinterpret_cast<const ::google::protobuf::Message*>(&::orleans::core::_OrleansResponse_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::orleans::core::_OrleansReleaseRequest_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::orleans::core::_OrleansReleaseResponse_default_instance_),
 };
 
 void protobuf_AssignDescriptors() {
@@ -124,7 +192,7 @@ void protobuf_AssignDescriptorsOnce() {
 void protobuf_RegisterTypes(const ::std::string&) GOOGLE_PROTOBUF_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 2);
+  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 4);
 }
 
 void AddDescriptorsImpl() {
@@ -132,17 +200,22 @@ void AddDescriptorsImpl() {
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
       "\n\025orleans_service.proto\022\014orleans.core\032\037g"
       "ayrpc/core/gayrpc_option.proto\032\035gayrpc/c"
-      "ore/gayrpc_meta.proto\"j\n\016OrleansRequest\022"
-      "\022\n\ngrain_type\030\001 \001(\t\022\022\n\ngrain_name\030\002 \001(\t\022"
-      "\"\n\004meta\030\003 \001(\0132\024.gayrpc.core.RpcMeta\022\014\n\004b"
-      "ody\030\004 \001(\014\"C\n\017OrleansResponse\022\"\n\004meta\030\001 \001"
-      "(\0132\024.gayrpc.core.RpcMeta\022\014\n\004body\030\002 \001(\0142^"
-      "\n\016OrleansService\022L\n\007Request\022\034.orleans.co"
-      "re.OrleansRequest\032\035.orleans.core.Orleans"
-      "Response\"\004\320\363\030\001P\000P\001b\006proto3"
+      "ore/gayrpc_meta.proto\"q\n\016OrleansRequest\022"
+      "\022\n\ngrain_type\030\001 \001(\t\022\031\n\021grain_unique_name"
+      "\030\002 \001(\t\022\"\n\004meta\030\003 \001(\0132\024.gayrpc.core.RpcMe"
+      "ta\022\014\n\004body\030\004 \001(\014\"C\n\017OrleansResponse\022\"\n\004m"
+      "eta\030\001 \001(\0132\024.gayrpc.core.RpcMeta\022\014\n\004body\030"
+      "\002 \001(\014\"F\n\025OrleansReleaseRequest\022\022\n\ngrain_"
+      "type\030\001 \001(\t\022\031\n\021grain_unique_name\030\002 \001(\t\"\030\n"
+      "\026OrleansReleaseResponse2\272\001\n\016OrleansServi"
+      "ce\022L\n\007Request\022\034.orleans.core.OrleansRequ"
+      "est\032\035.orleans.core.OrleansResponse\"\004\320\363\030\001"
+      "\022Z\n\007Release\022#.orleans.core.OrleansReleas"
+      "eRequest\032$.orleans.core.OrleansReleaseRe"
+      "sponse\"\004\320\363\030\002P\000P\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 386);
+      descriptor, 584);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "orleans_service.proto", &protobuf_RegisterTypes);
   ::protobuf_gayrpc_2fcore_2fgayrpc_5foption_2eproto::AddDescriptors();
@@ -177,7 +250,7 @@ void OrleansRequest::clear_meta() {
 }
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int OrleansRequest::kGrainTypeFieldNumber;
-const int OrleansRequest::kGrainNameFieldNumber;
+const int OrleansRequest::kGrainUniqueNameFieldNumber;
 const int OrleansRequest::kMetaFieldNumber;
 const int OrleansRequest::kBodyFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
@@ -199,9 +272,9 @@ OrleansRequest::OrleansRequest(const OrleansRequest& from)
   if (from.grain_type().size() > 0) {
     grain_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_type_);
   }
-  grain_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.grain_name().size() > 0) {
-    grain_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_name_);
+  grain_unique_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.grain_unique_name().size() > 0) {
+    grain_unique_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_unique_name_);
   }
   body_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (from.body().size() > 0) {
@@ -217,7 +290,7 @@ OrleansRequest::OrleansRequest(const OrleansRequest& from)
 
 void OrleansRequest::SharedCtor() {
   grain_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  grain_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  grain_unique_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   body_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   meta_ = NULL;
   _cached_size_ = 0;
@@ -230,7 +303,7 @@ OrleansRequest::~OrleansRequest() {
 
 void OrleansRequest::SharedDtor() {
   grain_type_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  grain_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  grain_unique_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   body_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete meta_;
 }
@@ -265,7 +338,7 @@ void OrleansRequest::Clear() {
   (void) cached_has_bits;
 
   grain_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  grain_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  grain_unique_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   body_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (GetArenaNoVirtual() == NULL && meta_ != NULL) {
     delete meta_;
@@ -300,16 +373,16 @@ bool OrleansRequest::MergePartialFromCodedStream(
         break;
       }
 
-      // string grain_name = 2;
+      // string grain_unique_name = 2;
       case 2: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
             static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_grain_name()));
+                input, this->mutable_grain_unique_name()));
           DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->grain_name().data(), static_cast<int>(this->grain_name().length()),
+            this->grain_unique_name().data(), static_cast<int>(this->grain_unique_name().length()),
             ::google::protobuf::internal::WireFormatLite::PARSE,
-            "orleans.core.OrleansRequest.grain_name"));
+            "orleans.core.OrleansRequest.grain_unique_name"));
         } else {
           goto handle_unusual;
         }
@@ -376,14 +449,14 @@ void OrleansRequest::SerializeWithCachedSizes(
       1, this->grain_type(), output);
   }
 
-  // string grain_name = 2;
-  if (this->grain_name().size() > 0) {
+  // string grain_unique_name = 2;
+  if (this->grain_unique_name().size() > 0) {
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->grain_name().data(), static_cast<int>(this->grain_name().length()),
+      this->grain_unique_name().data(), static_cast<int>(this->grain_unique_name().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "orleans.core.OrleansRequest.grain_name");
+      "orleans.core.OrleansRequest.grain_unique_name");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->grain_name(), output);
+      2, this->grain_unique_name(), output);
   }
 
   // .gayrpc.core.RpcMeta meta = 3;
@@ -423,15 +496,15 @@ void OrleansRequest::SerializeWithCachedSizes(
         1, this->grain_type(), target);
   }
 
-  // string grain_name = 2;
-  if (this->grain_name().size() > 0) {
+  // string grain_unique_name = 2;
+  if (this->grain_unique_name().size() > 0) {
     ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->grain_name().data(), static_cast<int>(this->grain_name().length()),
+      this->grain_unique_name().data(), static_cast<int>(this->grain_unique_name().length()),
       ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "orleans.core.OrleansRequest.grain_name");
+      "orleans.core.OrleansRequest.grain_unique_name");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->grain_name(), target);
+        2, this->grain_unique_name(), target);
   }
 
   // .gayrpc.core.RpcMeta meta = 3;
@@ -472,11 +545,11 @@ size_t OrleansRequest::ByteSizeLong() const {
         this->grain_type());
   }
 
-  // string grain_name = 2;
-  if (this->grain_name().size() > 0) {
+  // string grain_unique_name = 2;
+  if (this->grain_unique_name().size() > 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->grain_name());
+        this->grain_unique_name());
   }
 
   // bytes body = 4;
@@ -526,9 +599,9 @@ void OrleansRequest::MergeFrom(const OrleansRequest& from) {
 
     grain_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_type_);
   }
-  if (from.grain_name().size() > 0) {
+  if (from.grain_unique_name().size() > 0) {
 
-    grain_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_name_);
+    grain_unique_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_unique_name_);
   }
   if (from.body().size() > 0) {
 
@@ -564,7 +637,7 @@ void OrleansRequest::Swap(OrleansRequest* other) {
 void OrleansRequest::InternalSwap(OrleansRequest* other) {
   using std::swap;
   grain_type_.Swap(&other->grain_type_);
-  grain_name_.Swap(&other->grain_name_);
+  grain_unique_name_.Swap(&other->grain_unique_name_);
   body_.Swap(&other->body_);
   swap(meta_, other->meta_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
@@ -872,6 +945,513 @@ void OrleansResponse::InternalSwap(OrleansResponse* other) {
 }
 
 ::google::protobuf::Metadata OrleansResponse::GetMetadata() const {
+  protobuf_orleans_5fservice_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_orleans_5fservice_2eproto::file_level_metadata[kIndexInFileMessages];
+}
+
+
+// ===================================================================
+
+void OrleansReleaseRequest::InitAsDefaultInstance() {
+}
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int OrleansReleaseRequest::kGrainTypeFieldNumber;
+const int OrleansReleaseRequest::kGrainUniqueNameFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+OrleansReleaseRequest::OrleansReleaseRequest()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
+    ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansReleaseRequest();
+  }
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:orleans.core.OrleansReleaseRequest)
+}
+OrleansReleaseRequest::OrleansReleaseRequest(const OrleansReleaseRequest& from)
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL),
+      _cached_size_(0) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  grain_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.grain_type().size() > 0) {
+    grain_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_type_);
+  }
+  grain_unique_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.grain_unique_name().size() > 0) {
+    grain_unique_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_unique_name_);
+  }
+  // @@protoc_insertion_point(copy_constructor:orleans.core.OrleansReleaseRequest)
+}
+
+void OrleansReleaseRequest::SharedCtor() {
+  grain_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  grain_unique_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  _cached_size_ = 0;
+}
+
+OrleansReleaseRequest::~OrleansReleaseRequest() {
+  // @@protoc_insertion_point(destructor:orleans.core.OrleansReleaseRequest)
+  SharedDtor();
+}
+
+void OrleansReleaseRequest::SharedDtor() {
+  grain_type_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  grain_unique_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+void OrleansReleaseRequest::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* OrleansReleaseRequest::descriptor() {
+  ::protobuf_orleans_5fservice_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_orleans_5fservice_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+}
+
+const OrleansReleaseRequest& OrleansReleaseRequest::default_instance() {
+  ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansReleaseRequest();
+  return *internal_default_instance();
+}
+
+OrleansReleaseRequest* OrleansReleaseRequest::New(::google::protobuf::Arena* arena) const {
+  OrleansReleaseRequest* n = new OrleansReleaseRequest;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void OrleansReleaseRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:orleans.core.OrleansReleaseRequest)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  grain_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  grain_unique_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  _internal_metadata_.Clear();
+}
+
+bool OrleansReleaseRequest::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:orleans.core.OrleansReleaseRequest)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // string grain_type = 1;
+      case 1: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(10u /* 10 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_grain_type()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->grain_type().data(), static_cast<int>(this->grain_type().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "orleans.core.OrleansReleaseRequest.grain_type"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // string grain_unique_name = 2;
+      case 2: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_grain_unique_name()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->grain_unique_name().data(), static_cast<int>(this->grain_unique_name().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "orleans.core.OrleansReleaseRequest.grain_unique_name"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, _internal_metadata_.mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:orleans.core.OrleansReleaseRequest)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:orleans.core.OrleansReleaseRequest)
+  return false;
+#undef DO_
+}
+
+void OrleansReleaseRequest::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:orleans.core.OrleansReleaseRequest)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string grain_type = 1;
+  if (this->grain_type().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->grain_type().data(), static_cast<int>(this->grain_type().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "orleans.core.OrleansReleaseRequest.grain_type");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      1, this->grain_type(), output);
+  }
+
+  // string grain_unique_name = 2;
+  if (this->grain_unique_name().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->grain_unique_name().data(), static_cast<int>(this->grain_unique_name().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "orleans.core.OrleansReleaseRequest.grain_unique_name");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      2, this->grain_unique_name(), output);
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
+  }
+  // @@protoc_insertion_point(serialize_end:orleans.core.OrleansReleaseRequest)
+}
+
+::google::protobuf::uint8* OrleansReleaseRequest::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:orleans.core.OrleansReleaseRequest)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string grain_type = 1;
+  if (this->grain_type().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->grain_type().data(), static_cast<int>(this->grain_type().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "orleans.core.OrleansReleaseRequest.grain_type");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        1, this->grain_type(), target);
+  }
+
+  // string grain_unique_name = 2;
+  if (this->grain_unique_name().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->grain_unique_name().data(), static_cast<int>(this->grain_unique_name().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "orleans.core.OrleansReleaseRequest.grain_unique_name");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        2, this->grain_unique_name(), target);
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:orleans.core.OrleansReleaseRequest)
+  return target;
+}
+
+size_t OrleansReleaseRequest::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:orleans.core.OrleansReleaseRequest)
+  size_t total_size = 0;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
+  }
+  // string grain_type = 1;
+  if (this->grain_type().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->grain_type());
+  }
+
+  // string grain_unique_name = 2;
+  if (this->grain_unique_name().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->grain_unique_name());
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = cached_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void OrleansReleaseRequest::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:orleans.core.OrleansReleaseRequest)
+  GOOGLE_DCHECK_NE(&from, this);
+  const OrleansReleaseRequest* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const OrleansReleaseRequest>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:orleans.core.OrleansReleaseRequest)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:orleans.core.OrleansReleaseRequest)
+    MergeFrom(*source);
+  }
+}
+
+void OrleansReleaseRequest::MergeFrom(const OrleansReleaseRequest& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:orleans.core.OrleansReleaseRequest)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.grain_type().size() > 0) {
+
+    grain_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_type_);
+  }
+  if (from.grain_unique_name().size() > 0) {
+
+    grain_unique_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.grain_unique_name_);
+  }
+}
+
+void OrleansReleaseRequest::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:orleans.core.OrleansReleaseRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void OrleansReleaseRequest::CopyFrom(const OrleansReleaseRequest& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:orleans.core.OrleansReleaseRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool OrleansReleaseRequest::IsInitialized() const {
+  return true;
+}
+
+void OrleansReleaseRequest::Swap(OrleansReleaseRequest* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void OrleansReleaseRequest::InternalSwap(OrleansReleaseRequest* other) {
+  using std::swap;
+  grain_type_.Swap(&other->grain_type_);
+  grain_unique_name_.Swap(&other->grain_unique_name_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata OrleansReleaseRequest::GetMetadata() const {
+  protobuf_orleans_5fservice_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_orleans_5fservice_2eproto::file_level_metadata[kIndexInFileMessages];
+}
+
+
+// ===================================================================
+
+void OrleansReleaseResponse::InitAsDefaultInstance() {
+}
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+OrleansReleaseResponse::OrleansReleaseResponse()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
+    ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansReleaseResponse();
+  }
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:orleans.core.OrleansReleaseResponse)
+}
+OrleansReleaseResponse::OrleansReleaseResponse(const OrleansReleaseResponse& from)
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL),
+      _cached_size_(0) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:orleans.core.OrleansReleaseResponse)
+}
+
+void OrleansReleaseResponse::SharedCtor() {
+  _cached_size_ = 0;
+}
+
+OrleansReleaseResponse::~OrleansReleaseResponse() {
+  // @@protoc_insertion_point(destructor:orleans.core.OrleansReleaseResponse)
+  SharedDtor();
+}
+
+void OrleansReleaseResponse::SharedDtor() {
+}
+
+void OrleansReleaseResponse::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* OrleansReleaseResponse::descriptor() {
+  ::protobuf_orleans_5fservice_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_orleans_5fservice_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+}
+
+const OrleansReleaseResponse& OrleansReleaseResponse::default_instance() {
+  ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansReleaseResponse();
+  return *internal_default_instance();
+}
+
+OrleansReleaseResponse* OrleansReleaseResponse::New(::google::protobuf::Arena* arena) const {
+  OrleansReleaseResponse* n = new OrleansReleaseResponse;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void OrleansReleaseResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:orleans.core.OrleansReleaseResponse)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _internal_metadata_.Clear();
+}
+
+bool OrleansReleaseResponse::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:orleans.core.OrleansReleaseResponse)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+  handle_unusual:
+    if (tag == 0) {
+      goto success;
+    }
+    DO_(::google::protobuf::internal::WireFormat::SkipField(
+          input, tag, _internal_metadata_.mutable_unknown_fields()));
+  }
+success:
+  // @@protoc_insertion_point(parse_success:orleans.core.OrleansReleaseResponse)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:orleans.core.OrleansReleaseResponse)
+  return false;
+#undef DO_
+}
+
+void OrleansReleaseResponse::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:orleans.core.OrleansReleaseResponse)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
+  }
+  // @@protoc_insertion_point(serialize_end:orleans.core.OrleansReleaseResponse)
+}
+
+::google::protobuf::uint8* OrleansReleaseResponse::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:orleans.core.OrleansReleaseResponse)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:orleans.core.OrleansReleaseResponse)
+  return target;
+}
+
+size_t OrleansReleaseResponse::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:orleans.core.OrleansReleaseResponse)
+  size_t total_size = 0;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
+  }
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = cached_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void OrleansReleaseResponse::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:orleans.core.OrleansReleaseResponse)
+  GOOGLE_DCHECK_NE(&from, this);
+  const OrleansReleaseResponse* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const OrleansReleaseResponse>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:orleans.core.OrleansReleaseResponse)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:orleans.core.OrleansReleaseResponse)
+    MergeFrom(*source);
+  }
+}
+
+void OrleansReleaseResponse::MergeFrom(const OrleansReleaseResponse& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:orleans.core.OrleansReleaseResponse)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+}
+
+void OrleansReleaseResponse::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:orleans.core.OrleansReleaseResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void OrleansReleaseResponse::CopyFrom(const OrleansReleaseResponse& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:orleans.core.OrleansReleaseResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool OrleansReleaseResponse::IsInitialized() const {
+  return true;
+}
+
+void OrleansReleaseResponse::Swap(OrleansReleaseResponse* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void OrleansReleaseResponse::InternalSwap(OrleansReleaseResponse* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata OrleansReleaseResponse::GetMetadata() const {
   protobuf_orleans_5fservice_2eproto::protobuf_AssignDescriptorsOnce();
   return ::protobuf_orleans_5fservice_2eproto::file_level_metadata[kIndexInFileMessages];
 }

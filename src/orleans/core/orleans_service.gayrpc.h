@@ -41,6 +41,7 @@ namespace core {
     enum class OrleansServiceMsgID:uint64_t
     {
         Request = 1,
+        Release = 2,
         
     };
 
@@ -51,6 +52,7 @@ namespace core {
         using WeakPtr = std::weak_ptr<OrleansServiceClient>;
 
         using RequestHandle = std::function<void(const orleans::core::OrleansResponse&, const gayrpc::core::RpcError&)>;
+        using ReleaseHandle = std::function<void(const orleans::core::OrleansReleaseResponse&, const gayrpc::core::RpcError&)>;
         
 
     public:
@@ -60,6 +62,14 @@ namespace core {
             call<orleans::core::OrleansResponse>(request, 
                 static_cast<uint32_t>(orleans_service_ServiceID::OrleansService), 
                 static_cast<uint64_t>(OrleansServiceMsgID::Request), 
+                handle);
+        }
+        void Release(const orleans::core::OrleansReleaseRequest& request,
+            const ReleaseHandle& handle = nullptr)
+        {
+            call<orleans::core::OrleansReleaseResponse>(request, 
+                static_cast<uint32_t>(orleans_service_ServiceID::OrleansService), 
+                static_cast<uint64_t>(OrleansServiceMsgID::Release), 
                 handle);
         }
         
@@ -75,6 +85,18 @@ namespace core {
                 timeout,
                 std::move(timeoutCallback));
         }
+        void Release(const orleans::core::OrleansReleaseRequest& request,
+            const ReleaseHandle& handle,
+            std::chrono::seconds timeout, 
+            BaseClient::TIMEOUT_CALLBACK timeoutCallback)
+        {
+            call<orleans::core::OrleansReleaseResponse>(request, 
+                static_cast<uint32_t>(orleans_service_ServiceID::OrleansService), 
+                static_cast<uint64_t>(OrleansServiceMsgID::Release), 
+                handle,
+                timeout,
+                std::move(timeoutCallback));
+        }
         
 
         orleans::core::OrleansResponse SyncRequest(
@@ -86,6 +108,29 @@ namespace core {
             auto responsePointer = std::make_shared<orleans::core::OrleansResponse>();
 
             Request(request, [responsePointer, errorPromise](const orleans::core::OrleansResponse& response,
+                const gayrpc::core::RpcError& error) {
+                *responsePointer = response;
+                errorPromise->set_value(error);
+            });
+
+            auto errorFuture = errorPromise->get_future();
+            if (errorFuture.wait_for(timeout) != std::future_status::ready)
+            {
+                throw std::runtime_error("timeout");
+            }
+
+            error = errorFuture.get();
+            return *responsePointer;
+        }
+        orleans::core::OrleansReleaseResponse SyncRelease(
+            const orleans::core::OrleansReleaseRequest& request,
+            gayrpc::core::RpcError& error,
+            std::chrono::seconds timeout)
+        {
+            auto errorPromise = std::make_shared<std::promise<gayrpc::core::RpcError>>();
+            auto responsePointer = std::make_shared<orleans::core::OrleansReleaseResponse>();
+
+            Release(request, [responsePointer, errorPromise](const orleans::core::OrleansReleaseResponse& response,
                 const gayrpc::core::RpcError& error) {
                 *responsePointer = response;
                 errorPromise->set_value(error);
@@ -139,6 +184,7 @@ namespace core {
         using WeakPtr = std::weak_ptr<OrleansServiceService>;
 
         using RequestReply = TemplateReply<orleans::core::OrleansResponse>;
+        using ReleaseReply = TemplateReply<orleans::core::OrleansReleaseResponse>;
         
 
         using BaseService::BaseService;
@@ -159,6 +205,9 @@ namespace core {
         virtual void Request(const orleans::core::OrleansRequest& request, 
             const orleans::core::OrleansServiceService::RequestReply::PTR& replyObj,
             InterceptorContextType) = 0;
+        virtual void Release(const orleans::core::OrleansReleaseRequest& request, 
+            const orleans::core::OrleansServiceService::ReleaseReply::PTR& replyObj,
+            InterceptorContextType) = 0;
         
 
     private:
@@ -176,6 +225,21 @@ namespace core {
                 &request](const RpcMeta& meta, const google::protobuf::Message& message, InterceptorContextType context) {
                 auto replyObject = std::make_shared<RequestReply>(meta, outboundInterceptor);
                 service->Request(request, replyObject, std::move(context));
+            }, context);
+        }
+        static void Release_stub(const RpcMeta& meta,
+            const std::string_view& data,
+            const OrleansServiceService::PTR& service,
+            const UnaryServerInterceptor& inboundInterceptor,
+            const UnaryServerInterceptor& outboundInterceptor,
+            InterceptorContextType context)
+        {
+            orleans::core::OrleansReleaseRequest request;
+            parseRequestWrapper(request, meta, data, inboundInterceptor, [service,
+                outboundInterceptor,
+                &request](const RpcMeta& meta, const google::protobuf::Message& message, InterceptorContextType context) {
+                auto replyObject = std::make_shared<ReleaseReply>(meta, outboundInterceptor);
+                service->Release(request, replyObject, std::move(context));
             }, context);
         }
         
@@ -204,8 +268,10 @@ namespace core {
         const std::string namespaceStr = "orleans.core.";
 
         (*serviceHandlerMapById)[static_cast<uint64_t>(OrleansServiceMsgID::Request)] = OrleansServiceService::Request_stub;
+        (*serviceHandlerMapById)[static_cast<uint64_t>(OrleansServiceMsgID::Release)] = OrleansServiceService::Release_stub;
         
         (*serviceHandlerMapByStr)[namespaceStr+"OrleansService.Request"] = OrleansServiceService::Request_stub;
+        (*serviceHandlerMapByStr)[namespaceStr+"OrleansService.Release"] = OrleansServiceService::Release_stub;
         
 
         auto requestStub = [service,

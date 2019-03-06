@@ -14,8 +14,7 @@ namespace orleans { namespace impl {
     public:
         RedisServiceMetaManager(brynet::net::EventLoop::Ptr timerEventLoop)
             :
-            mRedisClient(std::make_shared<cpp_redis::client>()),
-            mTimerEventLoop(timerEventLoop)
+            mRedisClient(std::make_shared<cpp_redis::client>())
         {
         }
 
@@ -35,6 +34,7 @@ namespace orleans { namespace impl {
             mRedisClient->sync_commit();
         }
 
+        // 查询Grain地址
         void    queryGrainAddr(GrainTypeName grainTypeName, std::string grainUniqueName, ServiceMetaManager::QueryGrainCompleted caller) override
         {
             {
@@ -56,18 +56,58 @@ namespace orleans { namespace impl {
                     }
                 }
             }
-            // 从Redis里查找路由信息
-            mRedisClient->get(grainUniqueName, [=](cpp_redis::reply& reply) {
+
+            auto sharedThis = shared_from_this();
+            auto redisClient = mRedisClient;
+
+            mRedisClient->get(grainUniqueName, [sharedThis, redisClient, grainUniqueName,caller](cpp_redis::reply& reply) {
                 if (!reply.is_null())
                 {
                     const auto addr = reply.as_string();
-                    addGrainAddrToCache(grainUniqueName, addr);
+                    sharedThis->addGrainAddrToCache(grainUniqueName, addr);
+                    caller(addr);
+                }
+            });
+        }
+
+        // 查询或分配Grain地址
+        void    queryOrCreateGrainAddr(GrainTypeName grainTypeName, std::string grainUniqueName, ServiceMetaManager::QueryGrainCompleted caller) override
+        {
+            {
+                std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
+                {
+                    const auto it = mGrainAddrCache.find(grainUniqueName);
+                    if (it != mGrainAddrCache.end())
+                    {
+                        caller((*it).second);
+                        return;
+                    }
+                }
+                {
+                    const auto it = mGrainAddrActiveCache.find(grainUniqueName);
+                    if (it != mGrainAddrActiveCache.end())
+                    {
+                        caller((*it).second);
+                        return;
+                    }
+                }
+            }
+
+            auto sharedThis = shared_from_this();
+            auto redisClient = mRedisClient;
+
+            // 从Redis里查找路由信息
+            mRedisClient->get(grainUniqueName, [sharedThis, caller, grainUniqueName, redisClient, grainTypeName](cpp_redis::reply& reply) {
+                if (!reply.is_null())
+                {
+                    const auto addr = reply.as_string();
+                    sharedThis->addGrainAddrToCache(grainUniqueName, addr);
                     caller(addr);
                 }
                 else
                 {
                     // 若不存在则获取处理此类型服务的所有服务器
-                    mRedisClient->lrange(grainTypeName, 0, -1, [=](cpp_redis::reply& reply) {
+                    redisClient->lrange(grainTypeName, 0, -1, [=](cpp_redis::reply& reply) {
                         if (!reply.is_array())
                         {
                             return;
@@ -80,38 +120,38 @@ namespace orleans { namespace impl {
 
                         //随机一个节点服务器
                         auto addr = addrs[std::rand() % addrs.size()].as_string();
-                        mRedisClient->setnx(grainUniqueName, addr, [=](cpp_redis::reply& reply) {
+                        redisClient->setnx(grainUniqueName, addr, [=](cpp_redis::reply& reply) {
                             if (!reply.ok() || !reply.is_integer())
                             {
                                 return;
                             }
                             if (reply.as_integer() == 1)
                             {
-                                addGrainAddrToCache(grainUniqueName, addr);
+                                sharedThis->addGrainAddrToCache(grainUniqueName, addr);
                                 caller(addr);
                                 return;
                             }
                             else if (reply.as_integer() == 0)
                             {
-                                mRedisClient->get(grainUniqueName, [=](cpp_redis::reply& reply) {
+                                redisClient->get(grainUniqueName, [=](cpp_redis::reply& reply) {
                                     if (reply.is_null())
                                     {
                                         return;
                                     }
 
                                     const auto addr = reply.as_string();
-                                    addGrainAddrToCache(grainUniqueName, addr);
+                                    sharedThis->addGrainAddrToCache(grainUniqueName, addr);
                                     caller(addr);
                                 });
-                                mRedisClient->commit();
+                                redisClient->commit();
                             }
                         });
-                        mRedisClient->commit();
+                        redisClient->commit();
                     });
-                    mRedisClient->commit();
+                    redisClient->commit();
                 }
             });
-            mRedisClient->commit();
+            redisClient->commit();
         }
 
         void    processAddrStatus(std::string grainUniqueName, std::string addr, bool isGood) override
@@ -132,16 +172,11 @@ namespace orleans { namespace impl {
             }
         }
 
-        void    startActiveTimer(std::string grainUniqueName) override
+        // 存活某Grain
+        void    activeGrain(std::string grainUniqueName) override
         {
             mRedisClient->expire(grainUniqueName, 20);
             mRedisClient->commit();
-
-            mTimerEventLoop->pushAsyncFunctor([grainUniqueName, timerLoop = mTimerEventLoop, sharedThis = shared_from_this()]() {
-                timerLoop->getTimerMgr()->addTimer(std::chrono::seconds(10), [=]() {
-                    sharedThis->startActiveTimer(grainUniqueName);
-                });
-            });
         }
 
         void    updateGrairAddrList()
@@ -159,7 +194,6 @@ namespace orleans { namespace impl {
 
     private:
         const std::shared_ptr<cpp_redis::client>    mRedisClient;
-        const brynet::net::EventLoop::Ptr           mTimerEventLoop;
         std::map<std::string, std::string>          mGrainAddrCache;        // Grain缓存
         std::map<std::string, std::string>          mGrainAddrActiveCache;  // 当前确认活跃Grain
         std::mutex                                  mGrainAddrCacheGuard;

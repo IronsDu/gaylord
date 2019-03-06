@@ -33,5 +33,7 @@ int main()
         assert(response.message() == world);
     }
 
+    clientOrleansRuntime->releaseGrain<dodo::test::EchoServerClient>("1");
+
     return 0;
 }

@@ -7,7 +7,7 @@ import public "gayrpc/core/gayrpc_meta.proto";
 
 message OrleansRequest {
     string grain_type = 1;
-    string grain_name = 2;
+    string grain_unique_name = 2;
 	gayrpc.core.RpcMeta meta = 3;
     bytes body = 4;
 }
@@ -17,8 +17,20 @@ message OrleansResponse {
 	bytes body = 2;
 }
 
+message OrleansReleaseRequest {
+    string grain_type = 1;
+    string grain_unique_name = 2;
+}
+
+message OrleansReleaseResponse {
+}
+
 service OrleansService {
     rpc Request(OrleansRequest) returns(OrleansResponse) {
         option (gayrpc.core.message_id)= 1;
+    };
+
+    rpc Release(OrleansReleaseRequest) returns(OrleansReleaseResponse) {
+        option (gayrpc.core.message_id)= 2;
     };
 }

@@ -28,16 +28,17 @@ namespace orleans { namespace core {
             mTCPConnector->startWorkerThread();
         }
 
-        template<typename T>
+        // 获取grain
+        template<typename GrainType>
         auto takeGrain(std::string grainID)
         {
-            auto grainTypeName = T::GetServiceTypeName();
-            auto grainUniqueName = grainTypeName + ":" + grainID;
-            auto sharedThis = shared_from_this();
+            const auto grainTypeName = GrainType::GetServiceTypeName();
+            const auto grainUniqueName = grainTypeName + ":" + grainID;
 
+            auto sharedThis = shared_from_this();
             auto grainRpcHandlerManager = std::make_shared<gayrpc::core::RpcTypeHandleManager>();
 
-            auto grain = T::Create(grainRpcHandlerManager,
+            auto grain = GrainType::Create(grainRpcHandlerManager,
                 [=](const gayrpc::core::RpcMeta& meta,
                     const google::protobuf::Message& message,
                     const gayrpc::core::UnaryHandler& next,
@@ -57,7 +58,7 @@ namespace orleans { namespace core {
                     // 将业务RPC包裹在 OrleansRequest
                     orleans::core::OrleansRequest request;
                     request.set_grain_type(grainTypeName);
-                    request.set_grain_name(grainUniqueName);
+                    request.set_grain_unique_name(grainUniqueName);
                     *request.mutable_meta() = meta;
                     request.set_body(message.SerializeAsString());
 
@@ -107,10 +108,46 @@ namespace orleans { namespace core {
                             next(meta, *p, std::move(context));
                         });
                     };
-                    serviceMetaManager->queryGrainAddr(grainTypeName, grainUniqueName, caller);
+                    serviceMetaManager->queryOrCreateGrainAddr(grainTypeName, grainUniqueName, caller);
                 });
 
             return grain;
+        }
+
+        // 释放grain
+        template<typename GrainType>
+        void    releaseGrain(std::string grainID)
+        {
+            releaseGrain(GrainType::GetServiceTypeName(), grainID);
+        }
+
+        // 释放grain
+        void    releaseGrain(GrainTypeName grainTypeName, std::string grainID)
+        {
+            const auto grainUniqueName = grainTypeName + ":" + grainID;
+            auto sharedThis = shared_from_this();
+
+            auto caller = [sharedThis, grainTypeName, grainUniqueName](std::string addr) {
+                if (addr.empty()) {
+                    return;
+                }
+                std::vector<std::string> strs = absl::StrSplit(addr, ":");
+                assert(strs.size() == 2);
+                sharedThis->asyncOrleansConnectionCreated(std::make_pair(strs[0],
+                    std::stoll(strs[1])),
+                    [=](orleans::core::OrleansServiceClient::PTR orleanClient) {
+                        orleans::core::OrleansReleaseRequest request;
+                        request.set_grain_type(grainTypeName);
+                        request.set_grain_unique_name(grainUniqueName);
+                        orleanClient->Release(request,
+                            [](const orleans::core::OrleansReleaseResponse&, const gayrpc::core::RpcError&) {
+                            },
+                            std::chrono::seconds(10),
+                                []() {
+                            });
+                    });
+            };
+            mServiceMetaManager->queryGrainAddr(grainTypeName, grainUniqueName, caller);
         }
 
     private:

@@ -25,9 +25,10 @@ namespace orleans { namespace core {
     public:
         virtual ~ServiceOrleansRuntime() = default;
 
-        explicit ServiceOrleansRuntime(ServiceMetaManager::Ptr metaManager)
+        explicit ServiceOrleansRuntime(ServiceMetaManager::Ptr metaManager, brynet::net::EventLoop::Ptr timerEventLoop)
             :
             mServiceMetaManager(metaManager),
+            mTimerEventLoop(timerEventLoop),
             mTCPService(brynet::net::TcpService::Create()),
             mListenThread(brynet::net::ListenThread::Create())
         {
@@ -45,38 +46,54 @@ namespace orleans { namespace core {
                 }, nullptr, nullptr, nullptr, 1024 * 1024, std::chrono::seconds(10));
         }
 
-        gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, std::string grainUniqueName)
+        gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, const std::string& grainUniqueName)
         {
-            std::lock_guard<std::mutex> lck(mGrainsGrard);
+            gayrpc::core::RpcTypeHandleManager::PTR grain;
 
-            if (const auto it = mServiceGrains.find(grainUniqueName); it != mServiceGrains.end())
             {
-                return it->second;
+                std::lock_guard<std::mutex> lck(mGrainsGrard);
+
+                if (const auto it = mServiceGrains.find(grainUniqueName); it != mServiceGrains.end())
+                {
+                    return it->second;
+                }
+
+                const auto it = mServceGrainCreators.find(grainType);
+                if (it == mServceGrainCreators.end())
+                {
+                    return nullptr;
+                }
+
+                grain = it->second(grainUniqueName);
+                if (grain)
+                {
+                    mServiceGrains[grainUniqueName] = grain;
+                }
             }
 
-            const auto it = mServceGrainCreators.find(grainType);
-            if (it == mServceGrainCreators.end())
-            {
-                return nullptr;
-            }
-
-            auto grain = it->second(grainUniqueName);
             if (grain)
             {
-                mServiceGrains[grainUniqueName] = grain;
                 // 开启存活定时器
-                mServiceMetaManager->startActiveTimer(grainUniqueName);
+                onActiveTimer(grainUniqueName);
             }
 
             return grain;
         }
 
-        template<typename T>
+        // 释放grain
+        void    releaseGrain(const std::string& grainUniqueName)
+        {
+            std::lock_guard<std::mutex> lck(mGrainsGrard);
+            mServiceGrains.erase(grainUniqueName);
+        }
+
+        // 注册GrainType服务
+        template<typename GrainType>
         void registerServiceGrain(std::string addr)
         {
             std::lock_guard<std::mutex> lck(mGrainsGrard);
 
-            auto typeName = T::GetServiceTypeName();
+            auto typeName = GrainType::GetServiceTypeName();
 
             mServiceMetaManager->registerGrain(typeName, addr);
             mServceGrainCreators[typeName] = [](std::string grainUniqueName) {
@@ -108,15 +125,40 @@ namespace orleans { namespace core {
 
                         return next(meta, message, std::move(context));
                     });
-                auto service = std::make_shared<T>(serviceContext);
-                T::Install(service);
+                auto service = std::make_shared<GrainType>(serviceContext);
+                GrainType::Install(service);
 
                 return grainRpcHandlerManager;
             };
         }
 
     private:
+        void    onActiveTimer(const std::string& grainUniqueName)
+        {
+            {
+                // 如果此grain在本地已经不存在则退出函数
+                std::lock_guard<std::mutex> lck(mGrainsGrard);
+                auto it = mServiceGrains.find(grainUniqueName);
+                if (it == mServiceGrains.end())
+                {
+                    return;
+                }
+            }
+
+            mServiceMetaManager->activeGrain(grainUniqueName);
+
+            auto sharedThis = shared_from_this();
+            mTimerEventLoop->pushAsyncFunctor([sharedThis, grainUniqueName, timerEventLoop = mTimerEventLoop]() {
+                timerEventLoop->getTimerMgr()->addTimer(std::chrono::seconds(10), [=]() {
+                    sharedThis->onActiveTimer(grainUniqueName);
+                });
+                
+            });
+        }
+
+    private:
         const ServiceMetaManager::Ptr                                   mServiceMetaManager;
+        const brynet::net::EventLoop::Ptr                               mTimerEventLoop;
         const brynet::net::TcpService::Ptr                              mTCPService;
         const brynet::net::ListenThread::Ptr                            mListenThread;
 

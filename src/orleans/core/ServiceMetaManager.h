@@ -20,12 +20,14 @@ namespace orleans { namespace core {
         virtual void    registerGrain(GrainTypeName, std::string addr) = 0;
         // 查询某类型某名称的grain的地址
         virtual void    queryGrainAddr(GrainTypeName grainTypeName, std::string grainUniqueName, QueryGrainCompleted) = 0;
+        // 查询或创建某类型某名称的grain的地址
+        virtual void    queryOrCreateGrainAddr(GrainTypeName grainTypeName, std::string grainUniqueName, QueryGrainCompleted) = 0;
         // 处理某个grain地址的当前状态(以更新本地grain缓存）
         virtual void    processAddrStatus(std::string grainUniqueName, std::string addr, bool isGood) = 0;
-        // 开启某grain的存活定时器
-        virtual void    startActiveTimer(std::string grainUniqueName) = 0;
         // 更新当前本地grain缓存
         virtual void    updateGrairAddrList() = 0;
+        // 存活某grain
+        virtual void    activeGrain(std::string grainUniqueName) = 0;
     };
 
 } }

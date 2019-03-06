@@ -46,16 +46,28 @@ int main()
     brynet::net::base::InitSocket();
 
     auto mainLoop = std::make_shared<brynet::net::EventLoop>();
-    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
-    redisServiceMetaManager->init("127.0.0.1", 6379);
+    orleans::core::ServiceMetaManager::Ptr serviceMetaManager;
+    {
+        auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
+        redisServiceMetaManager->init("127.0.0.1", 6379);
+        serviceMetaManager = redisServiceMetaManager;
+    }
 
-    auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(redisServiceMetaManager);
+    auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(serviceMetaManager, mainLoop);
     // 开启节点通信服务
-    serviceOrleansRuntime->startTCPService<OrleansGrainServiceImpl>(ServiceIP, ServicePort);
+    serviceOrleansRuntime->startTCPService<orleans::impl::OrleansGrainServiceImpl>(ServiceIP, ServicePort);
     // 注册Grain服务MyEchoService
     auto addr = ServiceIP + ":" + std::to_string(ServicePort);
     serviceOrleansRuntime->registerServiceGrain<MyEchoService>(addr);
-    
+
+    std::thread([serviceMetaManager]() {
+        // 演示定期刷新本地缓存
+        while(true) 
+        {
+            serviceMetaManager->updateGrairAddrList();
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+        }
+    }).detach();
     std::cin.get();
     return 0;
 }

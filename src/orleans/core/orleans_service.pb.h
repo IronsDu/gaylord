@@ -38,7 +38,7 @@ namespace protobuf_orleans_5fservice_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[2];
+  static const ::google::protobuf::internal::ParseTable schema[4];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -48,13 +48,25 @@ void InitDefaultsOrleansRequestImpl();
 void InitDefaultsOrleansRequest();
 void InitDefaultsOrleansResponseImpl();
 void InitDefaultsOrleansResponse();
+void InitDefaultsOrleansReleaseRequestImpl();
+void InitDefaultsOrleansReleaseRequest();
+void InitDefaultsOrleansReleaseResponseImpl();
+void InitDefaultsOrleansReleaseResponse();
 inline void InitDefaults() {
   InitDefaultsOrleansRequest();
   InitDefaultsOrleansResponse();
+  InitDefaultsOrleansReleaseRequest();
+  InitDefaultsOrleansReleaseResponse();
 }
 }  // namespace protobuf_orleans_5fservice_2eproto
 namespace orleans {
 namespace core {
+class OrleansReleaseRequest;
+class OrleansReleaseRequestDefaultTypeInternal;
+extern OrleansReleaseRequestDefaultTypeInternal _OrleansReleaseRequest_default_instance_;
+class OrleansReleaseResponse;
+class OrleansReleaseResponseDefaultTypeInternal;
+extern OrleansReleaseResponseDefaultTypeInternal _OrleansReleaseResponse_default_instance_;
 class OrleansRequest;
 class OrleansRequestDefaultTypeInternal;
 extern OrleansRequestDefaultTypeInternal _OrleansRequest_default_instance_;
@@ -164,19 +176,19 @@ class OrleansRequest : public ::google::protobuf::Message /* @@protoc_insertion_
   ::std::string* release_grain_type();
   void set_allocated_grain_type(::std::string* grain_type);
 
-  // string grain_name = 2;
-  void clear_grain_name();
-  static const int kGrainNameFieldNumber = 2;
-  const ::std::string& grain_name() const;
-  void set_grain_name(const ::std::string& value);
+  // string grain_unique_name = 2;
+  void clear_grain_unique_name();
+  static const int kGrainUniqueNameFieldNumber = 2;
+  const ::std::string& grain_unique_name() const;
+  void set_grain_unique_name(const ::std::string& value);
   #if LANG_CXX11
-  void set_grain_name(::std::string&& value);
+  void set_grain_unique_name(::std::string&& value);
   #endif
-  void set_grain_name(const char* value);
-  void set_grain_name(const char* value, size_t size);
-  ::std::string* mutable_grain_name();
-  ::std::string* release_grain_name();
-  void set_allocated_grain_name(::std::string* grain_name);
+  void set_grain_unique_name(const char* value);
+  void set_grain_unique_name(const char* value, size_t size);
+  ::std::string* mutable_grain_unique_name();
+  ::std::string* release_grain_unique_name();
+  void set_allocated_grain_unique_name(::std::string* grain_unique_name);
 
   // bytes body = 4;
   void clear_body();
@@ -206,7 +218,7 @@ class OrleansRequest : public ::google::protobuf::Message /* @@protoc_insertion_
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::internal::ArenaStringPtr grain_type_;
-  ::google::protobuf::internal::ArenaStringPtr grain_name_;
+  ::google::protobuf::internal::ArenaStringPtr grain_unique_name_;
   ::google::protobuf::internal::ArenaStringPtr body_;
   ::gayrpc::core::RpcMeta* meta_;
   mutable int _cached_size_;
@@ -330,6 +342,220 @@ class OrleansResponse : public ::google::protobuf::Message /* @@protoc_insertion
   friend struct ::protobuf_orleans_5fservice_2eproto::TableStruct;
   friend void ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansResponseImpl();
 };
+// -------------------------------------------------------------------
+
+class OrleansReleaseRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:orleans.core.OrleansReleaseRequest) */ {
+ public:
+  OrleansReleaseRequest();
+  virtual ~OrleansReleaseRequest();
+
+  OrleansReleaseRequest(const OrleansReleaseRequest& from);
+
+  inline OrleansReleaseRequest& operator=(const OrleansReleaseRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  OrleansReleaseRequest(OrleansReleaseRequest&& from) noexcept
+    : OrleansReleaseRequest() {
+    *this = ::std::move(from);
+  }
+
+  inline OrleansReleaseRequest& operator=(OrleansReleaseRequest&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const OrleansReleaseRequest& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const OrleansReleaseRequest* internal_default_instance() {
+    return reinterpret_cast<const OrleansReleaseRequest*>(
+               &_OrleansReleaseRequest_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    2;
+
+  void Swap(OrleansReleaseRequest* other);
+  friend void swap(OrleansReleaseRequest& a, OrleansReleaseRequest& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline OrleansReleaseRequest* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  OrleansReleaseRequest* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const OrleansReleaseRequest& from);
+  void MergeFrom(const OrleansReleaseRequest& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(OrleansReleaseRequest* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // string grain_type = 1;
+  void clear_grain_type();
+  static const int kGrainTypeFieldNumber = 1;
+  const ::std::string& grain_type() const;
+  void set_grain_type(const ::std::string& value);
+  #if LANG_CXX11
+  void set_grain_type(::std::string&& value);
+  #endif
+  void set_grain_type(const char* value);
+  void set_grain_type(const char* value, size_t size);
+  ::std::string* mutable_grain_type();
+  ::std::string* release_grain_type();
+  void set_allocated_grain_type(::std::string* grain_type);
+
+  // string grain_unique_name = 2;
+  void clear_grain_unique_name();
+  static const int kGrainUniqueNameFieldNumber = 2;
+  const ::std::string& grain_unique_name() const;
+  void set_grain_unique_name(const ::std::string& value);
+  #if LANG_CXX11
+  void set_grain_unique_name(::std::string&& value);
+  #endif
+  void set_grain_unique_name(const char* value);
+  void set_grain_unique_name(const char* value, size_t size);
+  ::std::string* mutable_grain_unique_name();
+  ::std::string* release_grain_unique_name();
+  void set_allocated_grain_unique_name(::std::string* grain_unique_name);
+
+  // @@protoc_insertion_point(class_scope:orleans.core.OrleansReleaseRequest)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr grain_type_;
+  ::google::protobuf::internal::ArenaStringPtr grain_unique_name_;
+  mutable int _cached_size_;
+  friend struct ::protobuf_orleans_5fservice_2eproto::TableStruct;
+  friend void ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansReleaseRequestImpl();
+};
+// -------------------------------------------------------------------
+
+class OrleansReleaseResponse : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:orleans.core.OrleansReleaseResponse) */ {
+ public:
+  OrleansReleaseResponse();
+  virtual ~OrleansReleaseResponse();
+
+  OrleansReleaseResponse(const OrleansReleaseResponse& from);
+
+  inline OrleansReleaseResponse& operator=(const OrleansReleaseResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  OrleansReleaseResponse(OrleansReleaseResponse&& from) noexcept
+    : OrleansReleaseResponse() {
+    *this = ::std::move(from);
+  }
+
+  inline OrleansReleaseResponse& operator=(OrleansReleaseResponse&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const OrleansReleaseResponse& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const OrleansReleaseResponse* internal_default_instance() {
+    return reinterpret_cast<const OrleansReleaseResponse*>(
+               &_OrleansReleaseResponse_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    3;
+
+  void Swap(OrleansReleaseResponse* other);
+  friend void swap(OrleansReleaseResponse& a, OrleansReleaseResponse& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline OrleansReleaseResponse* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  OrleansReleaseResponse* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const OrleansReleaseResponse& from);
+  void MergeFrom(const OrleansReleaseResponse& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(OrleansReleaseResponse* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:orleans.core.OrleansReleaseResponse)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  mutable int _cached_size_;
+  friend struct ::protobuf_orleans_5fservice_2eproto::TableStruct;
+  friend void ::protobuf_orleans_5fservice_2eproto::InitDefaultsOrleansReleaseResponseImpl();
+};
 // ===================================================================
 
 
@@ -394,57 +620,57 @@ inline void OrleansRequest::set_allocated_grain_type(::std::string* grain_type) 
   // @@protoc_insertion_point(field_set_allocated:orleans.core.OrleansRequest.grain_type)
 }
 
-// string grain_name = 2;
-inline void OrleansRequest::clear_grain_name() {
-  grain_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// string grain_unique_name = 2;
+inline void OrleansRequest::clear_grain_unique_name() {
+  grain_unique_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline const ::std::string& OrleansRequest::grain_name() const {
-  // @@protoc_insertion_point(field_get:orleans.core.OrleansRequest.grain_name)
-  return grain_name_.GetNoArena();
+inline const ::std::string& OrleansRequest::grain_unique_name() const {
+  // @@protoc_insertion_point(field_get:orleans.core.OrleansRequest.grain_unique_name)
+  return grain_unique_name_.GetNoArena();
 }
-inline void OrleansRequest::set_grain_name(const ::std::string& value) {
+inline void OrleansRequest::set_grain_unique_name(const ::std::string& value) {
   
-  grain_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:orleans.core.OrleansRequest.grain_name)
+  grain_unique_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:orleans.core.OrleansRequest.grain_unique_name)
 }
 #if LANG_CXX11
-inline void OrleansRequest::set_grain_name(::std::string&& value) {
+inline void OrleansRequest::set_grain_unique_name(::std::string&& value) {
   
-  grain_name_.SetNoArena(
+  grain_unique_name_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:orleans.core.OrleansRequest.grain_name)
+  // @@protoc_insertion_point(field_set_rvalue:orleans.core.OrleansRequest.grain_unique_name)
 }
 #endif
-inline void OrleansRequest::set_grain_name(const char* value) {
+inline void OrleansRequest::set_grain_unique_name(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
-  grain_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:orleans.core.OrleansRequest.grain_name)
+  grain_unique_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:orleans.core.OrleansRequest.grain_unique_name)
 }
-inline void OrleansRequest::set_grain_name(const char* value, size_t size) {
+inline void OrleansRequest::set_grain_unique_name(const char* value, size_t size) {
   
-  grain_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+  grain_unique_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:orleans.core.OrleansRequest.grain_name)
+  // @@protoc_insertion_point(field_set_pointer:orleans.core.OrleansRequest.grain_unique_name)
 }
-inline ::std::string* OrleansRequest::mutable_grain_name() {
+inline ::std::string* OrleansRequest::mutable_grain_unique_name() {
   
-  // @@protoc_insertion_point(field_mutable:orleans.core.OrleansRequest.grain_name)
-  return grain_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  // @@protoc_insertion_point(field_mutable:orleans.core.OrleansRequest.grain_unique_name)
+  return grain_unique_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* OrleansRequest::release_grain_name() {
-  // @@protoc_insertion_point(field_release:orleans.core.OrleansRequest.grain_name)
+inline ::std::string* OrleansRequest::release_grain_unique_name() {
+  // @@protoc_insertion_point(field_release:orleans.core.OrleansRequest.grain_unique_name)
   
-  return grain_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  return grain_unique_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void OrleansRequest::set_allocated_grain_name(::std::string* grain_name) {
-  if (grain_name != NULL) {
+inline void OrleansRequest::set_allocated_grain_unique_name(::std::string* grain_unique_name) {
+  if (grain_unique_name != NULL) {
     
   } else {
     
   }
-  grain_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), grain_name);
-  // @@protoc_insertion_point(field_set_allocated:orleans.core.OrleansRequest.grain_name)
+  grain_unique_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), grain_unique_name);
+  // @@protoc_insertion_point(field_set_allocated:orleans.core.OrleansRequest.grain_unique_name)
 }
 
 // .gayrpc.core.RpcMeta meta = 3;
@@ -645,9 +871,127 @@ inline void OrleansResponse::set_allocated_body(::std::string* body) {
   // @@protoc_insertion_point(field_set_allocated:orleans.core.OrleansResponse.body)
 }
 
+// -------------------------------------------------------------------
+
+// OrleansReleaseRequest
+
+// string grain_type = 1;
+inline void OrleansReleaseRequest::clear_grain_type() {
+  grain_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& OrleansReleaseRequest::grain_type() const {
+  // @@protoc_insertion_point(field_get:orleans.core.OrleansReleaseRequest.grain_type)
+  return grain_type_.GetNoArena();
+}
+inline void OrleansReleaseRequest::set_grain_type(const ::std::string& value) {
+  
+  grain_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:orleans.core.OrleansReleaseRequest.grain_type)
+}
+#if LANG_CXX11
+inline void OrleansReleaseRequest::set_grain_type(::std::string&& value) {
+  
+  grain_type_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:orleans.core.OrleansReleaseRequest.grain_type)
+}
+#endif
+inline void OrleansReleaseRequest::set_grain_type(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  grain_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:orleans.core.OrleansReleaseRequest.grain_type)
+}
+inline void OrleansReleaseRequest::set_grain_type(const char* value, size_t size) {
+  
+  grain_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:orleans.core.OrleansReleaseRequest.grain_type)
+}
+inline ::std::string* OrleansReleaseRequest::mutable_grain_type() {
+  
+  // @@protoc_insertion_point(field_mutable:orleans.core.OrleansReleaseRequest.grain_type)
+  return grain_type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* OrleansReleaseRequest::release_grain_type() {
+  // @@protoc_insertion_point(field_release:orleans.core.OrleansReleaseRequest.grain_type)
+  
+  return grain_type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void OrleansReleaseRequest::set_allocated_grain_type(::std::string* grain_type) {
+  if (grain_type != NULL) {
+    
+  } else {
+    
+  }
+  grain_type_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), grain_type);
+  // @@protoc_insertion_point(field_set_allocated:orleans.core.OrleansReleaseRequest.grain_type)
+}
+
+// string grain_unique_name = 2;
+inline void OrleansReleaseRequest::clear_grain_unique_name() {
+  grain_unique_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& OrleansReleaseRequest::grain_unique_name() const {
+  // @@protoc_insertion_point(field_get:orleans.core.OrleansReleaseRequest.grain_unique_name)
+  return grain_unique_name_.GetNoArena();
+}
+inline void OrleansReleaseRequest::set_grain_unique_name(const ::std::string& value) {
+  
+  grain_unique_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:orleans.core.OrleansReleaseRequest.grain_unique_name)
+}
+#if LANG_CXX11
+inline void OrleansReleaseRequest::set_grain_unique_name(::std::string&& value) {
+  
+  grain_unique_name_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:orleans.core.OrleansReleaseRequest.grain_unique_name)
+}
+#endif
+inline void OrleansReleaseRequest::set_grain_unique_name(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  grain_unique_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:orleans.core.OrleansReleaseRequest.grain_unique_name)
+}
+inline void OrleansReleaseRequest::set_grain_unique_name(const char* value, size_t size) {
+  
+  grain_unique_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:orleans.core.OrleansReleaseRequest.grain_unique_name)
+}
+inline ::std::string* OrleansReleaseRequest::mutable_grain_unique_name() {
+  
+  // @@protoc_insertion_point(field_mutable:orleans.core.OrleansReleaseRequest.grain_unique_name)
+  return grain_unique_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* OrleansReleaseRequest::release_grain_unique_name() {
+  // @@protoc_insertion_point(field_release:orleans.core.OrleansReleaseRequest.grain_unique_name)
+  
+  return grain_unique_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void OrleansReleaseRequest::set_allocated_grain_unique_name(::std::string* grain_unique_name) {
+  if (grain_unique_name != NULL) {
+    
+  } else {
+    
+  }
+  grain_unique_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), grain_unique_name);
+  // @@protoc_insertion_point(field_set_allocated:orleans.core.OrleansReleaseRequest.grain_unique_name)
+}
+
+// -------------------------------------------------------------------
+
+// OrleansReleaseResponse
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 
