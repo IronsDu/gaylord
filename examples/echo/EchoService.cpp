@@ -53,9 +53,24 @@ int main()
         serviceMetaManager = redisServiceMetaManager;
     }
 
+    auto service = brynet::net::TcpService::Create();
+    service->startWorkerThread(1);
     auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(serviceMetaManager, mainLoop);
     // 开启节点通信服务
-    serviceOrleansRuntime->startTCPService<orleans::impl::OrleansGrainServiceImpl>(ServiceIP, ServicePort);
+    auto serviceConfig = serviceOrleansRuntime->wrapService<orleans::impl::OrleansGrainServiceImpl>(
+        service,
+        {
+            TcpService::AddSocketOption::WithMaxRecvBufferSize(1024 * 1024)
+        },
+        {
+        });
+
+    auto binaryListenThread = ListenThread::Create(false,
+        ServiceIP,
+        ServicePort, 
+        serviceConfig);
+    binaryListenThread->startListen();
+
     // 注册Grain服务MyEchoService
     auto addr = ServiceIP + ":" + std::to_string(ServicePort);
     serviceOrleansRuntime->registerServiceGrain<MyEchoService>(addr);

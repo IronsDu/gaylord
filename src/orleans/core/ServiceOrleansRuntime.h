@@ -9,12 +9,15 @@
 #include <brynet/net/ListenThread.h>
 #include <gayrpc/core/GayRpcTypeHandler.h>
 #include <gayrpc/core/GayRpcType.h>
+#include <gayrpc/utils/UtilsWrapper.h>
 
 #include <orleans/core/CoreType.h>
 #include <orleans/core/ServiceMetaManager.h>
 #include <orleans/core/orleans_service.pb.h>
 
 namespace orleans { namespace core {
+
+    using namespace brynet::net;
 
     class ServiceOrleansRuntime : public brynet::utils::NonCopyable, public std::enable_shared_from_this<ServiceOrleansRuntime>
     {
@@ -25,25 +28,29 @@ namespace orleans { namespace core {
     public:
         virtual ~ServiceOrleansRuntime() = default;
 
-        explicit ServiceOrleansRuntime(ServiceMetaManager::Ptr metaManager, brynet::net::EventLoop::Ptr timerEventLoop)
+        ServiceOrleansRuntime(ServiceMetaManager::Ptr metaManager, 
+            brynet::net::EventLoop::Ptr timerEventLoop)
             :
             mServiceMetaManager(metaManager),
-            mTimerEventLoop(timerEventLoop),
-            mTCPService(brynet::net::TcpService::Create()),
-            mListenThread(brynet::net::ListenThread::Create())
+            mTimerEventLoop(timerEventLoop)
         {
-            mTCPService->startWorkerThread(1);
         }
 
         template<typename GrainServiceType>
-        void    startTCPService(const std::string& ip, int port)
+        auto    wrapService(brynet::net::TcpService::Ptr service,
+            std::vector<TcpService::AddSocketOption::AddSocketOptionFunc> socketOptions,
+            std::vector<gayrpc::utils::RpcConfig::AddRpcConfigFunc> configSettings)
         {
             auto sharedThis = shared_from_this();
-            gayrpc::utils::StartBinaryRpcServer<GrainServiceType>(mTCPService, mListenThread,
-                ip, port,
+
+            auto binaryServiceConfig = gayrpc::utils::WrapTcpRpc<GrainServiceType>(
+                service,
                 [=](gayrpc::core::ServiceContext context) {
                     return std::make_shared<GrainServiceType>(context, sharedThis);
-                }, nullptr, nullptr, nullptr, 1024 * 1024, std::chrono::seconds(10));
+                },
+                socketOptions,
+                configSettings);
+            return binaryServiceConfig;
         }
 
         gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, const std::string& grainUniqueName)
@@ -51,7 +58,7 @@ namespace orleans { namespace core {
             gayrpc::core::RpcTypeHandleManager::PTR grain;
 
             {
-                std::lock_guard<std::mutex> lck(mGrainsGrard);
+                std::lock_guard<std::mutex> lck(mGrainsGuard);
 
                 if (const auto it = mServiceGrains.find(grainUniqueName); it != mServiceGrains.end())
                 {
@@ -83,7 +90,7 @@ namespace orleans { namespace core {
         // 释放grain
         void    releaseGrain(const std::string& grainUniqueName)
         {
-            std::lock_guard<std::mutex> lck(mGrainsGrard);
+            std::lock_guard<std::mutex> lck(mGrainsGuard);
             mServiceGrains.erase(grainUniqueName);
         }
 
@@ -91,7 +98,7 @@ namespace orleans { namespace core {
         template<typename GrainType>
         void registerServiceGrain(std::string addr)
         {
-            std::lock_guard<std::mutex> lck(mGrainsGrard);
+            std::lock_guard<std::mutex> lck(mGrainsGuard);
 
             auto typeName = GrainType::GetServiceTypeName();
 
@@ -137,7 +144,7 @@ namespace orleans { namespace core {
         {
             {
                 // 如果此grain在本地已经不存在则退出函数
-                std::lock_guard<std::mutex> lck(mGrainsGrard);
+                std::lock_guard<std::mutex> lck(mGrainsGuard);
                 auto it = mServiceGrains.find(grainUniqueName);
                 if (it == mServiceGrains.end())
                 {
@@ -148,21 +155,19 @@ namespace orleans { namespace core {
             mServiceMetaManager->activeGrain(grainUniqueName);
 
             auto sharedThis = shared_from_this();
-            mTimerEventLoop->pushAsyncFunctor([sharedThis, grainUniqueName, timerEventLoop = mTimerEventLoop]() {
-                timerEventLoop->getTimerMgr()->addTimer(std::chrono::seconds(10), [=]() {
-                    sharedThis->onActiveTimer(grainUniqueName);
-                });
-                
+            mTimerEventLoop->runAfter(std::chrono::seconds(10), [sharedThis, grainUniqueName]() {
+                sharedThis->onActiveTimer(grainUniqueName);
+                    
             });
         }
 
     private:
         const ServiceMetaManager::Ptr                                   mServiceMetaManager;
         const brynet::net::EventLoop::Ptr                               mTimerEventLoop;
-        const brynet::net::TcpService::Ptr                              mTCPService;
-        const brynet::net::ListenThread::Ptr                            mListenThread;
+        std::vector<brynet::net::ListenThread::Ptr>                     mListenThreads;
+        std::mutex                                                      mListenThreadsGuard;
 
-        std::mutex                                                      mGrainsGrard;
+        std::mutex                                                      mGrainsGuard;
         std::map<std::string, gayrpc::core::RpcTypeHandleManager::PTR>  mServiceGrains;
         std::map <GrainTypeName, GrainCreator>                          mServceGrainCreators;
     };

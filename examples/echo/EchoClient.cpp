@@ -19,7 +19,25 @@ int main()
     auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
     redisServiceMetaManager->init("127.0.0.1", 6379);
 
-    auto clientOrleansRuntime = std::make_shared<ClientOrleansRuntime>(redisServiceMetaManager);
+    auto service = brynet::net::TcpService::Create();
+    auto connector = brynet::net::AsyncConnector::Create();
+
+    service->startWorkerThread(1);
+    connector->startWorkerThread();
+
+    auto clientOrleansRuntime = std::make_shared<ClientOrleansRuntime>(service,
+        connector,
+        redisServiceMetaManager,
+        std::vector<AsyncConnector::ConnectOptions::ConnectOptionFunc>{
+            AsyncConnector::ConnectOptions::WithTimeout(std::chrono::seconds(10)),
+        },
+        std::vector<TcpService::AddSocketOption::AddSocketOptionFunc>{
+            TcpService::AddSocketOption::WithMaxRecvBufferSize(1024 * 1024),
+            TcpService::AddSocketOption::AddEnterCallback([](const TcpConnection::Ptr& session) {
+                session->setHeartBeat(std::chrono::seconds(10));
+            })
+        },
+        std::vector<RpcConfig::AddRpcConfigFunc>{});
     // 获取Grain
     auto echoServer1Grain = clientOrleansRuntime->takeGrain<dodo::test::EchoServerClient>("1");
 

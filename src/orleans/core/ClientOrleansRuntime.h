@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <brynet/net/Connector.h>
+#include <brynet/net/TCPService.h>
 #include <brynet/utils/NonCopyable.h>
 #include <gayrpc/utils/UtilsWrapper.h>
 #include <absl/strings/str_split.h>
@@ -8,6 +10,9 @@
 #include <orleans/core/orleans_service.gayrpc.h>
 
 namespace orleans { namespace core {
+
+    using namespace brynet::net;
+    using namespace gayrpc::utils;
 
     class ClientOrleansRuntime : public brynet::utils::NonCopyable, public std::enable_shared_from_this<ClientOrleansRuntime>
     {
@@ -18,14 +23,20 @@ namespace orleans { namespace core {
     public:
         virtual ~ClientOrleansRuntime() = default;
 
-        explicit ClientOrleansRuntime(ServiceMetaManager::Ptr metaManager)
+        ClientOrleansRuntime(brynet::net::TcpService::Ptr service,
+            brynet::net::AsyncConnector::Ptr connector,
+            ServiceMetaManager::Ptr metaManager,
+            std::vector<AsyncConnector::ConnectOptions::ConnectOptionFunc> connectOptions,
+            std::vector<TcpService::AddSocketOption::AddSocketOptionFunc> socketOptions,
+            std::vector<RpcConfig::AddRpcConfigFunc> configSettings)
             :
+            mTCPService(service),
+            mTCPConnector(connector),
             mServiceMetaManager(metaManager),
-            mTCPService(brynet::net::TcpService::Create()),
-            mTCPConnector(brynet::net::AsyncConnector::Create())
+            mConnectOptions(std::move(connectOptions)),
+            mSocketOptions(std::move(socketOptions)),
+            mRpcConfigSettings(std::move(configSettings))
         {
-            mTCPService->startWorkerThread(1);
-            mTCPConnector->startWorkerThread();
         }
 
         // 获取grain
@@ -174,27 +185,30 @@ namespace orleans { namespace core {
             }
             else
             {
-                // TODO::链接配置
                 // 如果当前没有到节点的链接则异步创建
-                gayrpc::utils::AsyncCreateRpcClient<orleans::core::OrleansServiceClient>(
+                auto tmp = mConnectOptions;
+                tmp.push_back(AsyncConnector::ConnectOptions::WithAddr(addr.first, addr.second));
+                AsyncCreateRpcClient<orleans::core::OrleansServiceClient>(
                     mTCPService,
                     mTCPConnector,
-                    addr.first, addr.second, std::chrono::seconds(10),
-                    nullptr,
-                    nullptr,
-                    nullptr,
+                    tmp,
+                    mSocketOptions,
+                    mRpcConfigSettings,
                     [=](orleans::core::OrleansServiceClient::PTR client) {
                         // RPC对象创建成功则执行回调
                         callback(client);
-                    },
-                    []() {}, 1024 * 1024, std::chrono::seconds(10));
+                    });
             }
         }
 
     private:
-        const ServiceMetaManager::Ptr                                   mServiceMetaManager;
         const brynet::net::TcpService::Ptr                              mTCPService;
         const brynet::net::AsyncConnector::Ptr                          mTCPConnector;
+        const ServiceMetaManager::Ptr                                   mServiceMetaManager;
+
+        const std::vector<AsyncConnector::ConnectOptions::ConnectOptionFunc>    mConnectOptions;
+        const std::vector<TcpService::AddSocketOption::AddSocketOptionFunc>     mSocketOptions;
+        const std::vector<RpcConfig::AddRpcConfigFunc>                          mRpcConfigSettings;
 
         std::mutex                                                      mOrleansConnectionGrard;
         std::map<IPAddr, orleans::core::OrleansServiceClient::PTR>      mOrleans;
