@@ -28,15 +28,33 @@ namespace orleans { namespace core {
             ServiceMetaManager::Ptr metaManager,
             std::vector<AsyncConnector::ConnectOptions::ConnectOptionFunc> connectOptions,
             std::vector<TcpService::AddSocketOption::AddSocketOptionFunc> socketOptions,
-            std::vector<RpcConfig::AddRpcConfigFunc> configSettings)
+            std::vector< UnaryServerInterceptor> inboundInterceptors,
+            std::vector< UnaryServerInterceptor> outboundInterceptors)
             :
-            mTCPService(service),
-            mTCPConnector(connector),
             mServiceMetaManager(metaManager),
             mConnectOptions(std::move(connectOptions)),
-            mSocketOptions(std::move(socketOptions)),
-            mRpcConfigSettings(std::move(configSettings))
+            mRpcClientBuilder(gayrpc::utils::ClientBuilder::Make())
         {
+            mRpcClientBuilder->configureConnector(connector)
+                ->configureService(service)
+                ->buildSocketOptions([=](BuildSocketOptions options) {
+                    for (const auto& v : socketOptions)
+                    {
+                        options.addOption(v);
+                    }
+                })
+                ->buildInboundInterceptor([=](BuildInterceptor build) {
+                    for (const auto& v : inboundInterceptors)
+                    {
+                        build.addInterceptor(v);
+                    }
+                })
+                ->buildOutboundInterceptor([=](BuildInterceptor build) {
+                    for (const auto& v : inboundInterceptors)
+                    {
+                        build.addInterceptor(v);
+                    }
+                });
         }
 
         // 获取grain
@@ -186,15 +204,16 @@ namespace orleans { namespace core {
             else
             {
                 // 如果当前没有到节点的链接则异步创建
-                auto tmp = mConnectOptions;
-                tmp.push_back(AsyncConnector::ConnectOptions::WithAddr(addr.first, addr.second));
-                AsyncCreateRpcClient<orleans::core::OrleansServiceClient>(
-                    mTCPService,
-                    mTCPConnector,
-                    tmp,
-                    mSocketOptions,
-                    mRpcConfigSettings,
-                    [=](orleans::core::OrleansServiceClient::PTR client) {
+                auto options = mConnectOptions;
+                options.push_back(AsyncConnector::ConnectOptions::WithAddr(addr.first, addr.second));
+                mRpcClientBuilder->buildConnectOptions([=](BuildConnectOptions connectOptions) {
+                        for (const auto& option : options)
+                        {
+                            connectOptions.addOption(option);
+                        }
+                    })
+                    ->asyncConnect<orleans::core::OrleansServiceClient>(
+                        [=](std::shared_ptr<orleans::core::OrleansServiceClient> client) {
                         // RPC对象创建成功则执行回调
                         callback(client);
                     });
@@ -202,13 +221,10 @@ namespace orleans { namespace core {
         }
 
     private:
-        const brynet::net::TcpService::Ptr                              mTCPService;
-        const brynet::net::AsyncConnector::Ptr                          mTCPConnector;
         const ServiceMetaManager::Ptr                                   mServiceMetaManager;
 
         const std::vector<AsyncConnector::ConnectOptions::ConnectOptionFunc>    mConnectOptions;
-        const std::vector<TcpService::AddSocketOption::AddSocketOptionFunc>     mSocketOptions;
-        const std::vector<RpcConfig::AddRpcConfigFunc>                          mRpcConfigSettings;
+        const gayrpc::utils::ClientBuilder::Ptr                                 mRpcClientBuilder;
 
         std::mutex                                                      mOrleansConnectionGrard;
         std::map<IPAddr, orleans::core::OrleansServiceClient::PTR>      mOrleans;

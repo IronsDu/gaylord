@@ -36,23 +36,6 @@ namespace orleans { namespace core {
         {
         }
 
-        template<typename GrainServiceType>
-        auto    wrapService(brynet::net::TcpService::Ptr service,
-            std::vector<TcpService::AddSocketOption::AddSocketOptionFunc> socketOptions,
-            std::vector<gayrpc::utils::RpcConfig::AddRpcConfigFunc> configSettings)
-        {
-            auto sharedThis = shared_from_this();
-
-            auto binaryServiceConfig = gayrpc::utils::WrapTcpRpc<GrainServiceType>(
-                service,
-                [=](gayrpc::core::ServiceContext context) {
-                    return std::make_shared<GrainServiceType>(context, sharedThis);
-                },
-                socketOptions,
-                configSettings);
-            return binaryServiceConfig;
-        }
-
         gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, const std::string& grainUniqueName)
         {
             gayrpc::core::RpcTypeHandleManager::PTR grain;

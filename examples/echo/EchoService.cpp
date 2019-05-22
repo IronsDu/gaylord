@@ -55,21 +55,22 @@ int main()
 
     auto service = brynet::net::TcpService::Create();
     service->startWorkerThread(1);
-    auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(serviceMetaManager, mainLoop);
-    // 开启节点通信服务
-    auto serviceConfig = serviceOrleansRuntime->wrapService<orleans::impl::OrleansGrainServiceImpl>(
-        service,
-        {
-            TcpService::AddSocketOption::WithMaxRecvBufferSize(1024 * 1024)
-        },
-        {
-        });
 
-    auto binaryListenThread = ListenThread::Create(false,
-        ServiceIP,
-        ServicePort, 
-        serviceConfig);
-    binaryListenThread->startListen();
+    auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(serviceMetaManager, mainLoop);
+
+    // 开启节点通信服务
+    auto serviceBulder = gayrpc::utils::ServiceBuilder<orleans::impl::OrleansGrainServiceImpl>::Make();
+    serviceBulder->configureCreator([=](ServiceContext context) {
+            return std::make_shared<orleans::impl::OrleansGrainServiceImpl>(context, serviceOrleansRuntime);
+        })
+        ->configureService(service)
+        ->buildSocketOptions([](BuildSocketOptions options) {
+            options.addOption(TcpService::AddSocketOption::WithMaxRecvBufferSize(1024 * 1024));
+        })
+        ->configureListen([=](BuildListenConfig config) {
+            config.setAddr(false, ServiceIP, ServicePort);
+        })
+        ->asyncRun();
 
     // 注册Grain服务MyEchoService
     auto addr = ServiceIP + ":" + std::to_string(ServicePort);

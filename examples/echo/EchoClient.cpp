@@ -37,7 +37,8 @@ int main()
                 session->setHeartBeat(std::chrono::seconds(10));
             })
         },
-        std::vector<RpcConfig::AddRpcConfigFunc>{});
+        std::vector< UnaryServerInterceptor>{},
+        std::vector< UnaryServerInterceptor>{});
     // 获取Grain
     auto echoServer1Grain = clientOrleansRuntime->takeGrain<dodo::test::EchoServerClient>("1");
 
@@ -47,7 +48,7 @@ int main()
         request.set_message(hello);
         gayrpc::core::RpcError error;
         auto response = echoServer1Grain->SyncEcho(request, error, std::chrono::seconds(10));
-
+        std::cout << response.message() << std::endl;
         assert(response.message() == world);
     }
 
