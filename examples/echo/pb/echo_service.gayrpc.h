@@ -76,7 +76,7 @@ namespace test {
         void Echo(const dodo::test::EchoRequest& request,
             const EchoHandle& handle,
             std::chrono::seconds timeout, 
-            BaseClient::TIMEOUT_CALLBACK timeoutCallback)
+            BaseClient::TIMEOUT_CALLBACK&& timeoutCallback)
         {
             call<dodo::test::EchoResponse>(request, 
                 static_cast<uint32_t>(echo_service_ServiceID::EchoServer), 
@@ -88,7 +88,7 @@ namespace test {
         void Login(const dodo::test::LoginRequest& request,
             const LoginHandle& handle,
             std::chrono::seconds timeout, 
-            BaseClient::TIMEOUT_CALLBACK timeoutCallback)
+            BaseClient::TIMEOUT_CALLBACK&& timeoutCallback)
         {
             call<dodo::test::LoginResponse>(request, 
                 static_cast<uint32_t>(echo_service_ServiceID::EchoServer), 
@@ -152,7 +152,7 @@ namespace test {
             const UnaryServerInterceptor& inboundInterceptor,
             const UnaryServerInterceptor& outboundInterceptor)
         {
-            struct make_shared_enabler : public EchoServerClient
+            class make_shared_enabler : public EchoServerClient
             {
             public:
                 make_shared_enabler(const RpcTypeHandleManager::PTR& rpcHandlerManager,
@@ -195,7 +195,7 @@ namespace test {
 
         virtual void onClose() {}
 
-        static inline bool Install(const EchoServerService::PTR& service);
+        static bool Install(const EchoServerService::PTR& service);
 
         static  std::string GetServiceTypeName()
         {
@@ -204,43 +204,43 @@ namespace test {
     private:
         virtual void Echo(const dodo::test::EchoRequest& request, 
             const dodo::test::EchoServerService::EchoReply::PTR& replyObj,
-            InterceptorContextType) = 0;
+            InterceptorContextType&&) = 0;
         virtual void Login(const dodo::test::LoginRequest& request, 
             const dodo::test::EchoServerService::LoginReply::PTR& replyObj,
-            InterceptorContextType) = 0;
+            InterceptorContextType&&) = 0;
         
 
     private:
 
-        static void Echo_stub(const RpcMeta& meta,
+        static void Echo_stub(RpcMeta&& meta,
             const std::string_view& data,
             const EchoServerService::PTR& service,
             const UnaryServerInterceptor& inboundInterceptor,
             const UnaryServerInterceptor& outboundInterceptor,
-            InterceptorContextType context)
+            InterceptorContextType&& context)
         {
             dodo::test::EchoRequest request;
-            parseRequestWrapper(request, meta, data, inboundInterceptor, [service,
-                outboundInterceptor,
-                &request](const RpcMeta& meta, const google::protobuf::Message& message, InterceptorContextType context) {
-                auto replyObject = std::make_shared<EchoReply>(meta, outboundInterceptor);
+            parseRequestWrapper(request, std::move(meta), data, inboundInterceptor, [service,
+                outboundInterceptor = outboundInterceptor,
+                &request](RpcMeta&& meta, const google::protobuf::Message& message, InterceptorContextType&& context) mutable {
+                auto replyObject = std::make_shared<EchoReply>(std::move(meta), std::move(outboundInterceptor));
                 service->Echo(request, replyObject, std::move(context));
-            }, context);
+            }, std::move(context));
         }
-        static void Login_stub(const RpcMeta& meta,
+        static void Login_stub(RpcMeta&& meta,
             const std::string_view& data,
             const EchoServerService::PTR& service,
             const UnaryServerInterceptor& inboundInterceptor,
             const UnaryServerInterceptor& outboundInterceptor,
-            InterceptorContextType context)
+            InterceptorContextType&& context)
         {
             dodo::test::LoginRequest request;
-            parseRequestWrapper(request, meta, data, inboundInterceptor, [service,
-                outboundInterceptor,
-                &request](const RpcMeta& meta, const google::protobuf::Message& message, InterceptorContextType context) {
-                auto replyObject = std::make_shared<LoginReply>(meta, outboundInterceptor);
+            parseRequestWrapper(request, std::move(meta), data, inboundInterceptor, [service,
+                outboundInterceptor = outboundInterceptor,
+                &request](RpcMeta&& meta, const google::protobuf::Message& message, InterceptorContextType&& context) mutable {
+                auto replyObject = std::make_shared<LoginReply>(std::move(meta), std::move(outboundInterceptor));
                 service->Login(request, replyObject, std::move(context));
-            }, context);
+            }, std::move(context));
         }
         
     };
@@ -251,12 +251,12 @@ namespace test {
         auto inboundInterceptor = service->getServiceContext().getInInterceptor();
         auto outboundInterceptor = service->getServiceContext().getOutInterceptor();
 
-        using EchoServerServiceRequestHandler = std::function<void(const RpcMeta&,
+        using EchoServerServiceRequestHandler = std::function<void(RpcMeta&&,
             const std::string_view& data,
             const EchoServerService::PTR&,
             const UnaryServerInterceptor&,
             const UnaryServerInterceptor&,
-            InterceptorContextType context)>;
+            InterceptorContextType&& context)>;
 
         using EchoServerServiceHandlerMapById = std::unordered_map<uint64_t, EchoServerServiceRequestHandler>;
         using EchoServerServiceHandlerMapByStr = std::unordered_map<std::string, EchoServerServiceRequestHandler>;
@@ -278,7 +278,7 @@ namespace test {
             serviceHandlerMapById,
             serviceHandlerMapByStr,
             inboundInterceptor,
-            outboundInterceptor](const RpcMeta& meta, const std::string_view& data, InterceptorContextType context) {
+            outboundInterceptor](RpcMeta&& meta, const std::string_view& data, InterceptorContextType&& context) {
             
             if (meta.type() != RpcMeta::REQUEST)
             {
@@ -306,7 +306,7 @@ namespace test {
                 handler = (*it).second;
             }
 
-            handler(meta,
+            handler(std::move(meta),
                 data,
                 service,
                 inboundInterceptor,

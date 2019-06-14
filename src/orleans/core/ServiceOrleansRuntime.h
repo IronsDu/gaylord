@@ -14,6 +14,7 @@
 #include <orleans/core/CoreType.h>
 #include <orleans/core/ServiceMetaManager.h>
 #include <orleans/core/orleans_service.pb.h>
+#include <orleans/core/Utils.h>
 
 namespace orleans { namespace core {
 
@@ -83,24 +84,24 @@ namespace orleans { namespace core {
         {
             std::lock_guard<std::mutex> lck(mGrainsGuard);
 
-            auto typeName = GrainType::GetServiceTypeName();
+            const auto typeName = GrainType::GetServiceTypeName();
 
             mServiceMetaManager->registerGrain(typeName, addr);
             mServceGrainCreators[typeName] = [](std::string grainUniqueName) {
                 // 创建Grain 服务
                 auto grainRpcHandlerManager = std::make_shared<gayrpc::core::RpcTypeHandleManager>();
                 gayrpc::core::ServiceContext serviceContext(grainRpcHandlerManager,
-                    [=](const gayrpc::core::RpcMeta& meta,
+                    [=](gayrpc::core::RpcMeta&& meta,
                         const google::protobuf::Message& message,
-                        const gayrpc::core::UnaryHandler& next,
-                        gayrpc::core::InterceptorContextType context)
+                        gayrpc::core::UnaryHandler&& next,
+                        gayrpc::core::InterceptorContextType&& context)
                     {
-                        return next(meta, message, std::move(context));
+                        return next(std::move(meta), message, std::move(context));
                     },
-                    [=](const gayrpc::core::RpcMeta& meta,
+                    [=](gayrpc::core::RpcMeta&& meta,
                         const google::protobuf::Message& message,
-                        const gayrpc::core::UnaryHandler& next,
-                        gayrpc::core::InterceptorContextType context)
+                        gayrpc::core::UnaryHandler&& next,
+                        gayrpc::core::InterceptorContextType&& context)
                     {
                         // 处理业务层RPC服务的输出(即Response)
 
@@ -113,13 +114,22 @@ namespace orleans { namespace core {
                         response.set_body(message.SerializeAsString());
                         replyObjPtr->reply(response, std::move(context));
 
-                        return next(meta, message, std::move(context));
+                        return next(std::move(meta), message, std::move(context));
                     });
-                auto service = std::make_shared<GrainType>(serviceContext);
+                auto service = std::make_shared<GrainType>(std::move(serviceContext), grainUniqueName);
                 GrainType::Install(service);
 
                 return grainRpcHandlerManager;
             };
+        }
+
+        // 强制将某类型grain激活到某地址
+        template<typename GrainType>
+        void createGrainByAddr(std::string grainID, std::string addr)
+        {
+            const auto grainTypeName = GrainType::GetServiceTypeName();
+            const auto grainUniqueName = Utils::MakeGrainUniqueName(grainTypeName, grainID);
+            mServiceMetaManager->createGrainByAddr(grainUniqueName, addr);
         }
 
     private:

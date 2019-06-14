@@ -5,9 +5,9 @@
 #include <brynet/net/TCPService.h>
 #include <brynet/utils/NonCopyable.h>
 #include <gayrpc/utils/UtilsWrapper.h>
-#include <absl/strings/str_split.h>
 #include <orleans/core/ServiceMetaManager.h>
 #include <orleans/core/orleans_service.gayrpc.h>
+#include <orleans/core/Utils.h>
 
 namespace orleans { namespace core {
 
@@ -32,24 +32,18 @@ namespace orleans { namespace core {
             std::vector< UnaryServerInterceptor> outboundInterceptors)
             :
             mServiceMetaManager(metaManager),
-            mConnectOptions(std::move(connectOptions)),
-            mRpcClientBuilder(gayrpc::utils::ClientBuilder::Make())
+            mConnectOptions(std::move(connectOptions))
         {
-            mRpcClientBuilder->configureConnector(connector)
-                ->configureService(service)
-                ->buildSocketOptions([=](BuildSocketOptions options) {
-                    for (const auto& v : socketOptions)
-                    {
-                        options.addOption(v);
-                    }
-                })
-                ->buildInboundInterceptor([=](BuildInterceptor build) {
+            mRpcClientBuilder.configureConnector(connector)
+                .configureService(service)
+                .configureConnectionOptions(socketOptions)
+                .buildInboundInterceptor([=](BuildInterceptor build) {
                     for (const auto& v : inboundInterceptors)
                     {
                         build.addInterceptor(v);
                     }
                 })
-                ->buildOutboundInterceptor([=](BuildInterceptor build) {
+                .buildOutboundInterceptor([=](BuildInterceptor build) {
                     for (const auto& v : inboundInterceptors)
                     {
                         build.addInterceptor(v);
@@ -62,23 +56,23 @@ namespace orleans { namespace core {
         auto takeGrain(std::string grainID)
         {
             const auto grainTypeName = GrainType::GetServiceTypeName();
-            const auto grainUniqueName = grainTypeName + ":" + grainID;
+            const auto grainUniqueName = Utils::MakeGrainUniqueName(grainTypeName, grainID);
 
             auto sharedThis = shared_from_this();
             auto grainRpcHandlerManager = std::make_shared<gayrpc::core::RpcTypeHandleManager>();
 
             auto grain = GrainType::Create(grainRpcHandlerManager,
-                [=](const gayrpc::core::RpcMeta& meta,
+                [=](gayrpc::core::RpcMeta&& meta,
                     const google::protobuf::Message& message,
-                    const gayrpc::core::UnaryHandler& next,
-                    InterceptorContextType context)
+                    gayrpc::core::UnaryHandler&& next,
+                    InterceptorContextType&& context)
                 {
-                    return next(meta, message, std::move(context));
+                    return next(std::move(meta), message, std::move(context));
                 },
-                [=, serviceMetaManager = mServiceMetaManager](const gayrpc::core::RpcMeta& meta,
+                [=, serviceMetaManager = mServiceMetaManager](gayrpc::core::RpcMeta&& meta,
                     const google::protobuf::Message& message,
-                    const gayrpc::core::UnaryHandler& next,
-                    InterceptorContextType context)
+                    gayrpc::core::UnaryHandler&& next,
+                    InterceptorContextType&& context)
                 {
                     auto seq_id = meta.request_info().sequence_id();
                     auto timeoutSecond = meta.request_info().timeout();
@@ -96,11 +90,9 @@ namespace orleans { namespace core {
 
                     // 尝试创建到grain所在节点的RPC
                     auto caller = [=](std::string addr) {
-                        std::vector<std::string> strs = absl::StrSplit(addr, ":");
-                        assert(strs.size() == 2);
-                        sharedThis->asyncOrleansConnectionCreated(std::make_pair(strs[0],
-                            std::stoll(strs[1])),
-                            [=, context = std::move(context)](orleans::core::OrleansServiceClient::PTR orleanClient) {
+                        auto ipAddr = Utils::GetIPAddrFromString(addr);
+                        sharedThis->asyncOrleansConnectionCreated(ipAddr,
+                            [=, context = std::move(context)](orleans::core::OrleansServiceClient::PTR orleanClient) mutable {
                             auto timeout = std::chrono::seconds(timeoutSecond > 0 ? timeoutSecond : 10);
                             orleanClient->Request(request, 
                                 [=, context = std::move(context)](const orleans::core::OrleansResponse& response, const gayrpc::core::RpcError& error) {
@@ -116,7 +108,7 @@ namespace orleans { namespace core {
                                         try
                                         {
                                             InterceptorContextType context;
-                                            grainRpcHandlerManager->handleRpcMsg(errorMeta, "", std::move(context));
+                                            grainRpcHandlerManager->handleRpcMsg(std::move(errorMeta), "", std::move(context));
                                         }
                                         catch(...)
                                         { }
@@ -124,7 +116,8 @@ namespace orleans { namespace core {
                                     else
                                     {
                                         InterceptorContextType context;
-                                        grainRpcHandlerManager->handleRpcMsg(response.meta(), response.body(), context);
+                                        auto meta = response.meta();
+                                        grainRpcHandlerManager->handleRpcMsg(std::move(meta), response.body(), std::move(context));
                                     }
                                     // 每次调用成功都处理此grain地址状态
                                     serviceMetaManager->processAddrStatus(grainUniqueName, addr, true);
@@ -134,7 +127,7 @@ namespace orleans { namespace core {
                                     // 超时处理此grain地址状态
                                     serviceMetaManager->processAddrStatus(grainUniqueName, addr,false);
                                 });
-                            next(meta, *p, std::move(context));
+                            next(std::move(meta), *p, std::move(context));
                         });
                     };
                     serviceMetaManager->queryOrCreateGrainAddr(grainTypeName, grainUniqueName, caller);
@@ -153,17 +146,17 @@ namespace orleans { namespace core {
         // 释放grain
         void    releaseGrain(GrainTypeName grainTypeName, std::string grainID)
         {
-            const auto grainUniqueName = grainTypeName + ":" + grainID;
+            const auto grainUniqueName = Utils::MakeGrainUniqueName(grainTypeName, grainID);
             auto sharedThis = shared_from_this();
 
             auto caller = [sharedThis, grainTypeName, grainUniqueName](std::string addr) {
-                if (addr.empty()) {
+                if (addr.empty())
+                {
                     return;
                 }
-                std::vector<std::string> strs = absl::StrSplit(addr, ":");
-                assert(strs.size() == 2);
-                sharedThis->asyncOrleansConnectionCreated(std::make_pair(strs[0],
-                    std::stoll(strs[1])),
+
+                auto ipAddr = Utils::GetIPAddrFromString(addr);
+                sharedThis->asyncOrleansConnectionCreated(ipAddr,
                     [=](orleans::core::OrleansServiceClient::PTR orleanClient) {
                         orleans::core::OrleansReleaseRequest request;
                         request.set_grain_type(grainTypeName);
@@ -172,7 +165,7 @@ namespace orleans { namespace core {
                             [](const orleans::core::OrleansReleaseResponse&, const gayrpc::core::RpcError&) {
                             },
                             std::chrono::seconds(10),
-                                []() {
+                            []() {
                             });
                     });
             };
@@ -206,13 +199,8 @@ namespace orleans { namespace core {
                 // 如果当前没有到节点的链接则异步创建
                 auto options = mConnectOptions;
                 options.push_back(AsyncConnector::ConnectOptions::WithAddr(addr.first, addr.second));
-                mRpcClientBuilder->buildConnectOptions([=](BuildConnectOptions connectOptions) {
-                        for (const auto& option : options)
-                        {
-                            connectOptions.addOption(option);
-                        }
-                    })
-                    ->asyncConnect<orleans::core::OrleansServiceClient>(
+                mRpcClientBuilder.configureConnectOptions(options)
+                    .asyncConnect<orleans::core::OrleansServiceClient>(
                         [=](std::shared_ptr<orleans::core::OrleansServiceClient> client) {
                         // RPC对象创建成功则执行回调
                         callback(client);
@@ -224,7 +212,7 @@ namespace orleans { namespace core {
         const ServiceMetaManager::Ptr                                   mServiceMetaManager;
 
         const std::vector<AsyncConnector::ConnectOptions::ConnectOptionFunc>    mConnectOptions;
-        const gayrpc::utils::ClientBuilder::Ptr                                 mRpcClientBuilder;
+        gayrpc::utils::ClientBuilder                                            mRpcClientBuilder;
 
         std::mutex                                                      mOrleansConnectionGrard;
         std::map<IPAddr, orleans::core::OrleansServiceClient::PTR>      mOrleans;

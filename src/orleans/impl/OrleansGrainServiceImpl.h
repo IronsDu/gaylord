@@ -11,9 +11,9 @@ namespace orleans { namespace impl {
     class OrleansGrainServiceImpl : public orleans::core::OrleansServiceService
     {
     public:
-        OrleansGrainServiceImpl(gayrpc::core::ServiceContext context, ServiceOrleansRuntime::Ptr serviceOrleansRuntime)
+        OrleansGrainServiceImpl(gayrpc::core::ServiceContext&& context, ServiceOrleansRuntime::Ptr serviceOrleansRuntime)
             :
-            orleans::core::OrleansServiceService(context),
+            orleans::core::OrleansServiceService(std::move(context)),
             mServiceOrleansRuntime(serviceOrleansRuntime)
         {}
 
@@ -21,7 +21,7 @@ namespace orleans { namespace impl {
         // 处理Actor/Grain的RPC请求
         virtual void Request(const orleans::core::OrleansRequest& request,
             const orleans::core::OrleansServiceService::RequestReply::PTR& replyObj,
-            InterceptorContextType context)
+            InterceptorContextType&& context) override
         {
             gayrpc::core::RpcTypeHandleManager::PTR grain = mServiceOrleansRuntime->findOrCreateServiceGrain(
                 request.grain_type(),
@@ -32,13 +32,14 @@ namespace orleans { namespace impl {
                 return;
             }
             context[OrleansReplyObjKey] = replyObj;
-            grain->handleRpcMsg(request.meta(), request.body(), std::move(context));
+            auto meta = request.meta();
+            grain->handleRpcMsg(std::move(meta), request.body(), std::move(context));
         }
 
         // 处理释放Grain的请求
         virtual void Release(const orleans::core::OrleansReleaseRequest& request,
             const orleans::core::OrleansServiceService::ReleaseReply::PTR& replyObj,
-            InterceptorContextType)
+            InterceptorContextType&&) override
         {
             mServiceOrleansRuntime->releaseGrain(request.grain_unique_name());
         }

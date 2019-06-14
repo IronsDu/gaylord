@@ -21,13 +21,14 @@ const int ServicePort = 9999;
 class MyEchoService : public dodo::test::EchoServerService
 {
 public:
-    MyEchoService(gayrpc::core::ServiceContext context)
+    MyEchoService(gayrpc::core::ServiceContext&& context, std::string name)
         :
-        dodo::test::EchoServerService(context)
-    {}
+        dodo::test::EchoServerService(std::move(context))
+    {
+    }
     virtual void Echo(const dodo::test::EchoRequest& request,
         const dodo::test::EchoServerService::EchoReply::PTR& replyObj,
-        InterceptorContextType context)
+        InterceptorContextType&& context) override
     {
         assert(request.message() == hello);
         dodo::test::EchoResponse response;
@@ -36,7 +37,7 @@ public:
     }
     virtual void Login(const dodo::test::LoginRequest& request,
         const dodo::test::EchoServerService::LoginReply::PTR& replyObj,
-        InterceptorContextType context)
+        InterceptorContextType&& context) override
     {
     }
 };
@@ -59,22 +60,21 @@ int main()
     auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(serviceMetaManager, mainLoop);
 
     // 开启节点通信服务
-    auto serviceBulder = gayrpc::utils::ServiceBuilder<orleans::impl::OrleansGrainServiceImpl>::Make();
-    serviceBulder->configureCreator([=](ServiceContext context) {
-            return std::make_shared<orleans::impl::OrleansGrainServiceImpl>(context, serviceOrleansRuntime);
+    auto serviceBulder = gayrpc::utils::ServiceBuilder<orleans::impl::OrleansGrainServiceImpl>();
+    serviceBulder.configureCreator([=](ServiceContext&& context) {
+            return std::make_shared<orleans::impl::OrleansGrainServiceImpl>(std::move(context), serviceOrleansRuntime);
         })
-        ->configureService(service)
-        ->buildSocketOptions([](BuildSocketOptions options) {
-            options.addOption(TcpService::AddSocketOption::WithMaxRecvBufferSize(1024 * 1024));
-        })
-        ->configureListen([=](BuildListenConfig config) {
+        .configureService(service)
+        .configureConnectionOptions({ TcpService::AddSocketOption::WithMaxRecvBufferSize(1024 * 1024) })
+        .configureListen([=](wrapper::BuildListenConfig config) {
             config.setAddr(false, ServiceIP, ServicePort);
         })
-        ->asyncRun();
+        .asyncRun();
 
     // 注册Grain服务MyEchoService
-    auto addr = ServiceIP + ":" + std::to_string(ServicePort);
+    auto addr = Utils::MakeIpAddrString(ServiceIP, ServicePort);
     serviceOrleansRuntime->registerServiceGrain<MyEchoService>(addr);
+    serviceOrleansRuntime->createGrainByAddr<MyEchoService>("123", addr);
 
     std::thread([serviceMetaManager]() {
         // 演示定期刷新本地缓存

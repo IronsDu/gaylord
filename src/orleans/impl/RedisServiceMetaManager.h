@@ -35,7 +35,9 @@ namespace orleans { namespace impl {
         }
 
         // 查询Grain地址
-        void    queryGrainAddr(GrainTypeName grainTypeName, std::string grainUniqueName, ServiceMetaManager::QueryGrainCompleted caller) override
+        void    queryGrainAddr(GrainTypeName grainTypeName, 
+            std::string grainUniqueName, 
+            ServiceMetaManager::QueryGrainCompleted caller) override
         {
             {
                 std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
@@ -71,7 +73,9 @@ namespace orleans { namespace impl {
         }
 
         // 查询或分配Grain地址
-        void    queryOrCreateGrainAddr(GrainTypeName grainTypeName, std::string grainUniqueName, ServiceMetaManager::QueryGrainCompleted caller) override
+        void    queryOrCreateGrainAddr(GrainTypeName grainTypeName, 
+            std::string grainUniqueName, 
+            ServiceMetaManager::QueryGrainCompleted caller) override
         {
             {
                 std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
@@ -179,6 +183,25 @@ namespace orleans { namespace impl {
             mRedisClient->commit();
         }
 
+        void    createGrainByAddr(std::string grainUniqueName, std::string addr) override
+        {
+            {
+                std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
+                if (mGrainAddrCache.find(grainUniqueName) != mGrainAddrCache.end())
+                {
+                    return;
+                }
+                if (mGrainAddrActiveCache.find(grainUniqueName) != mGrainAddrActiveCache.end())
+                {
+                    return;
+                }
+            }
+
+            mRedisClient->setnx(grainUniqueName, addr, [=](cpp_redis::reply& reply) {
+            });
+            mRedisClient->commit();
+        }
+
         void    updateGrairAddrList()
         {
             std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
@@ -195,7 +218,7 @@ namespace orleans { namespace impl {
     private:
         const std::shared_ptr<cpp_redis::client>    mRedisClient;
         std::map<std::string, std::string>          mGrainAddrCache;        // Grain缓存
-        std::map<std::string, std::string>          mGrainAddrActiveCache;  // 当前确认活跃Grain
+        std::map<std::string, std::string>          mGrainAddrActiveCache;  // 最近确认活跃的Grain
         std::mutex                                  mGrainAddrCacheGuard;
     };
 

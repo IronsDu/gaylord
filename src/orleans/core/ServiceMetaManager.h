@@ -28,6 +28,8 @@ namespace orleans { namespace core {
         virtual void    updateGrairAddrList() = 0;
         // 存活某grain
         virtual void    activeGrain(std::string grainUniqueName) = 0;
+        // 强制将某grain创建到某地址
+        virtual void    createGrainByAddr(std::string grainUniqueName, std::string addr) = 0;
     };
 
 } }

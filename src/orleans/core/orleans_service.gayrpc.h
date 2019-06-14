@@ -76,7 +76,7 @@ namespace core {
         void Request(const orleans::core::OrleansRequest& request,
             const RequestHandle& handle,
             std::chrono::seconds timeout, 
-            BaseClient::TIMEOUT_CALLBACK timeoutCallback)
+            BaseClient::TIMEOUT_CALLBACK&& timeoutCallback)
         {
             call<orleans::core::OrleansResponse>(request, 
                 static_cast<uint32_t>(orleans_service_ServiceID::OrleansService), 
@@ -88,7 +88,7 @@ namespace core {
         void Release(const orleans::core::OrleansReleaseRequest& request,
             const ReleaseHandle& handle,
             std::chrono::seconds timeout, 
-            BaseClient::TIMEOUT_CALLBACK timeoutCallback)
+            BaseClient::TIMEOUT_CALLBACK&& timeoutCallback)
         {
             call<orleans::core::OrleansReleaseResponse>(request, 
                 static_cast<uint32_t>(orleans_service_ServiceID::OrleansService), 
@@ -152,7 +152,7 @@ namespace core {
             const UnaryServerInterceptor& inboundInterceptor,
             const UnaryServerInterceptor& outboundInterceptor)
         {
-            struct make_shared_enabler : public OrleansServiceClient
+            class make_shared_enabler : public OrleansServiceClient
             {
             public:
                 make_shared_enabler(const RpcTypeHandleManager::PTR& rpcHandlerManager,
@@ -195,7 +195,7 @@ namespace core {
 
         virtual void onClose() {}
 
-        static inline bool Install(const OrleansServiceService::PTR& service);
+        static bool Install(const OrleansServiceService::PTR& service);
 
         static  std::string GetServiceTypeName()
         {
@@ -204,43 +204,43 @@ namespace core {
     private:
         virtual void Request(const orleans::core::OrleansRequest& request, 
             const orleans::core::OrleansServiceService::RequestReply::PTR& replyObj,
-            InterceptorContextType) = 0;
+            InterceptorContextType&&) = 0;
         virtual void Release(const orleans::core::OrleansReleaseRequest& request, 
             const orleans::core::OrleansServiceService::ReleaseReply::PTR& replyObj,
-            InterceptorContextType) = 0;
+            InterceptorContextType&&) = 0;
         
 
     private:
 
-        static void Request_stub(const RpcMeta& meta,
+        static void Request_stub(RpcMeta&& meta,
             const std::string_view& data,
             const OrleansServiceService::PTR& service,
             const UnaryServerInterceptor& inboundInterceptor,
             const UnaryServerInterceptor& outboundInterceptor,
-            InterceptorContextType context)
+            InterceptorContextType&& context)
         {
             orleans::core::OrleansRequest request;
-            parseRequestWrapper(request, meta, data, inboundInterceptor, [service,
-                outboundInterceptor,
-                &request](const RpcMeta& meta, const google::protobuf::Message& message, InterceptorContextType context) {
-                auto replyObject = std::make_shared<RequestReply>(meta, outboundInterceptor);
+            parseRequestWrapper(request, std::move(meta), data, inboundInterceptor, [service,
+                outboundInterceptor = outboundInterceptor,
+                &request](RpcMeta&& meta, const google::protobuf::Message& message, InterceptorContextType&& context) mutable {
+                auto replyObject = std::make_shared<RequestReply>(std::move(meta), std::move(outboundInterceptor));
                 service->Request(request, replyObject, std::move(context));
-            }, context);
+            }, std::move(context));
         }
-        static void Release_stub(const RpcMeta& meta,
+        static void Release_stub(RpcMeta&& meta,
             const std::string_view& data,
             const OrleansServiceService::PTR& service,
             const UnaryServerInterceptor& inboundInterceptor,
             const UnaryServerInterceptor& outboundInterceptor,
-            InterceptorContextType context)
+            InterceptorContextType&& context)
         {
             orleans::core::OrleansReleaseRequest request;
-            parseRequestWrapper(request, meta, data, inboundInterceptor, [service,
-                outboundInterceptor,
-                &request](const RpcMeta& meta, const google::protobuf::Message& message, InterceptorContextType context) {
-                auto replyObject = std::make_shared<ReleaseReply>(meta, outboundInterceptor);
+            parseRequestWrapper(request, std::move(meta), data, inboundInterceptor, [service,
+                outboundInterceptor = outboundInterceptor,
+                &request](RpcMeta&& meta, const google::protobuf::Message& message, InterceptorContextType&& context) mutable {
+                auto replyObject = std::make_shared<ReleaseReply>(std::move(meta), std::move(outboundInterceptor));
                 service->Release(request, replyObject, std::move(context));
-            }, context);
+            }, std::move(context));
         }
         
     };
@@ -251,12 +251,12 @@ namespace core {
         auto inboundInterceptor = service->getServiceContext().getInInterceptor();
         auto outboundInterceptor = service->getServiceContext().getOutInterceptor();
 
-        using OrleansServiceServiceRequestHandler = std::function<void(const RpcMeta&,
+        using OrleansServiceServiceRequestHandler = std::function<void(RpcMeta&&,
             const std::string_view& data,
             const OrleansServiceService::PTR&,
             const UnaryServerInterceptor&,
             const UnaryServerInterceptor&,
-            InterceptorContextType context)>;
+            InterceptorContextType&& context)>;
 
         using OrleansServiceServiceHandlerMapById = std::unordered_map<uint64_t, OrleansServiceServiceRequestHandler>;
         using OrleansServiceServiceHandlerMapByStr = std::unordered_map<std::string, OrleansServiceServiceRequestHandler>;
@@ -278,7 +278,7 @@ namespace core {
             serviceHandlerMapById,
             serviceHandlerMapByStr,
             inboundInterceptor,
-            outboundInterceptor](const RpcMeta& meta, const std::string_view& data, InterceptorContextType context) {
+            outboundInterceptor](RpcMeta&& meta, const std::string_view& data, InterceptorContextType&& context) {
             
             if (meta.type() != RpcMeta::REQUEST)
             {
@@ -306,7 +306,7 @@ namespace core {
                 handler = (*it).second;
             }
 
-            handler(meta,
+            handler(std::move(meta),
                 data,
                 service,
                 inboundInterceptor,
