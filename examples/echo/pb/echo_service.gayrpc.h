@@ -24,6 +24,7 @@
 #include <gayrpc/core/GayRpcClient.h>
 #include <gayrpc/core/GayRpcService.h>
 #include <gayrpc/core/GayRpcReply.h>
+#include <ananas/future/Future.h>
 
 namespace dodo {
 namespace test {
@@ -85,6 +86,7 @@ namespace test {
                 timeout,
                 std::move(timeoutCallback));
         }
+
         void Login(const dodo::test::LoginRequest& request,
             const LoginHandle& handle,
             std::chrono::seconds timeout, 
@@ -97,54 +99,51 @@ namespace test {
                 timeout,
                 std::move(timeoutCallback));
         }
+
         
-
-        dodo::test::EchoResponse SyncEcho(
+        ananas::Future<std::pair<dodo::test::EchoResponse, gayrpc::core::RpcError>> SyncEcho(
             const dodo::test::EchoRequest& request,
-            gayrpc::core::RpcError& error,
             std::chrono::seconds timeout)
         {
-            auto errorPromise = std::make_shared<std::promise<gayrpc::core::RpcError>>();
-            auto responsePointer = std::make_shared<dodo::test::EchoResponse>();
+            ananas::Promise<std::pair<dodo::test::EchoResponse, gayrpc::core::RpcError>> promise;
 
-            Echo(request, [responsePointer, errorPromise](const dodo::test::EchoResponse& response,
-                const gayrpc::core::RpcError& error) {
-                *responsePointer = response;
-                errorPromise->set_value(error);
-            });
+            Echo(request, 
+                [promise](const dodo::test::EchoResponse& response,
+                    const gayrpc::core::RpcError& error) mutable {
+                    promise.SetValue(std::make_pair(response, error));
+                },
+                timeout,
+                [promise]() mutable {
+                    dodo::test::EchoResponse response;
+                    gayrpc::core::RpcError error;
+                    error.setTimeout();
+                    promise.SetValue(std::make_pair(response, error));
+                });
 
-            auto errorFuture = errorPromise->get_future();
-            if (errorFuture.wait_for(timeout) != std::future_status::ready)
-            {
-                throw std::runtime_error("timeout");
-            }
-
-            error = errorFuture.get();
-            return *responsePointer;
+            return promise.GetFuture();
         }
-        dodo::test::LoginResponse SyncLogin(
+
+        ananas::Future<std::pair<dodo::test::LoginResponse, gayrpc::core::RpcError>> SyncLogin(
             const dodo::test::LoginRequest& request,
-            gayrpc::core::RpcError& error,
             std::chrono::seconds timeout)
         {
-            auto errorPromise = std::make_shared<std::promise<gayrpc::core::RpcError>>();
-            auto responsePointer = std::make_shared<dodo::test::LoginResponse>();
+            ananas::Promise<std::pair<dodo::test::LoginResponse, gayrpc::core::RpcError>> promise;
 
-            Login(request, [responsePointer, errorPromise](const dodo::test::LoginResponse& response,
-                const gayrpc::core::RpcError& error) {
-                *responsePointer = response;
-                errorPromise->set_value(error);
-            });
+            Login(request, [promise](const dodo::test::LoginResponse& response,
+                const gayrpc::core::RpcError& error) mutable {
+                    promise.SetValue(std::make_pair(response, error));
+                },
+                timeout,
+                [promise]() mutable {
+                    dodo::test::LoginResponse response;
+                    gayrpc::core::RpcError error;
+                    error.setTimeout();
+                    promise.SetValue(std::make_pair(response, error));
+                });
 
-            auto errorFuture = errorPromise->get_future();
-            if (errorFuture.wait_for(timeout) != std::future_status::ready)
-            {
-                throw std::runtime_error("timeout");
-            }
-
-            error = errorFuture.get();
-            return *responsePointer;
+            return promise.GetFuture();
         }
+
         
 
     public:
@@ -227,6 +226,7 @@ namespace test {
                 service->Echo(request, replyObject, std::move(context));
             }, std::move(context));
         }
+
         static void Login_stub(RpcMeta&& meta,
             const std::string_view& data,
             const EchoServerService::PTR& service,
@@ -242,6 +242,7 @@ namespace test {
                 service->Login(request, replyObject, std::move(context));
             }, std::move(context));
         }
+
         
     };
 
@@ -261,18 +262,16 @@ namespace test {
         using EchoServerServiceHandlerMapById = std::unordered_map<uint64_t, EchoServerServiceRequestHandler>;
         using EchoServerServiceHandlerMapByStr = std::unordered_map<std::string, EchoServerServiceRequestHandler>;
 
-        // TODO::static unordered map
-        auto serviceHandlerMapById = std::make_shared<EchoServerServiceHandlerMapById>();
-        auto serviceHandlerMapByStr = std::make_shared<EchoServerServiceHandlerMapByStr>();
-
-        const std::string namespaceStr = "dodo.test.";
-
-        (*serviceHandlerMapById)[static_cast<uint64_t>(EchoServerMsgID::Echo)] = EchoServerService::Echo_stub;
-        (*serviceHandlerMapById)[static_cast<uint64_t>(EchoServerMsgID::Login)] = EchoServerService::Login_stub;
-        
-        (*serviceHandlerMapByStr)[namespaceStr+"EchoServer.Echo"] = EchoServerService::Echo_stub;
-        (*serviceHandlerMapByStr)[namespaceStr+"EchoServer.Login"] = EchoServerService::Login_stub;
-        
+        EchoServerServiceHandlerMapById serviceHandlerMapById = {
+            {static_cast<uint64_t>(EchoServerMsgID::Echo), EchoServerService::Echo_stub},
+            {static_cast<uint64_t>(EchoServerMsgID::Login), EchoServerService::Login_stub},
+            
+        };
+        EchoServerServiceHandlerMapByStr serviceHandlerMapByStr = {
+            {"dodo.test.EchoServer.Echo", EchoServerService::Echo_stub},
+            {"dodo.test.EchoServer.Login", EchoServerService::Login_stub},
+            
+        };
 
         auto requestStub = [service,
             serviceHandlerMapById,
@@ -289,8 +288,8 @@ namespace test {
 
             if (!meta.request_info().strmethod().empty())
             {
-                auto it = serviceHandlerMapByStr->find(meta.request_info().strmethod());
-                if (it == serviceHandlerMapByStr->end())
+                auto it = serviceHandlerMapByStr.find(meta.request_info().strmethod());
+                if (it == serviceHandlerMapByStr.end())
                 {
                     throw std::runtime_error("not found handle, method:" + meta.request_info().strmethod());
                 }
@@ -298,8 +297,8 @@ namespace test {
             }
             else
             {
-                auto it = serviceHandlerMapById->find(meta.request_info().intmethod());
-                if (it == serviceHandlerMapById->end())
+                auto it = serviceHandlerMapById.find(meta.request_info().intmethod());
+                if (it == serviceHandlerMapById.end())
                 {
                     throw std::runtime_error("not found handle, method:" + meta.request_info().intmethod());
                 }

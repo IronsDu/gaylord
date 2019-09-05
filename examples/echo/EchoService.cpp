@@ -1,5 +1,5 @@
 #include "./pb/echo_service.gayrpc.h"
-
+#include <optional>
 #include <orleans/core/ServiceMetaManager.h>
 #include <orleans/core/ServiceOrleansRuntime.h>
 #include <orleans/impl/OrleansGrainServiceImpl.h>
@@ -46,16 +46,19 @@ int main()
 {
     brynet::net::base::InitSocket();
 
+    auto service = brynet::net::TcpService::Create();
+    service->startWorkerThread(1);
+    auto connector = brynet::net::AsyncConnector::Create();
+    connector->startWorkerThread();
+
     auto mainLoop = std::make_shared<brynet::net::EventLoop>();
     orleans::core::ServiceMetaManager::Ptr serviceMetaManager;
     {
-        auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
-        redisServiceMetaManager->init("127.0.0.1", 6379);
+        auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop, service, connector);
+        auto connectResult = redisServiceMetaManager->init("127.0.0.1", 6379, std::chrono::seconds(10));
+        auto result = connectResult.Wait();
         serviceMetaManager = redisServiceMetaManager;
     }
-
-    auto service = brynet::net::TcpService::Create();
-    service->startWorkerThread(1);
 
     auto serviceOrleansRuntime = std::make_shared<ServiceOrleansRuntime>(serviceMetaManager, mainLoop);
 
@@ -73,8 +76,13 @@ int main()
 
     // 注册Grain服务MyEchoService
     auto addr = Utils::MakeIpAddrString(ServiceIP, ServicePort);
-    serviceOrleansRuntime->registerServiceGrain<MyEchoService>(addr);
-    serviceOrleansRuntime->createGrainByAddr<MyEchoService>("123", addr);
+    serviceOrleansRuntime
+        ->registerServiceGrain<MyEchoService>(addr, std::chrono::seconds(10))
+        .Then([=](bool result) {
+            // 尝试强制创建一个MyEchoService Grain在本地节点
+            return serviceOrleansRuntime->createGrainByAddr<MyEchoService>("123", addr, std::chrono::seconds(10));
+        });
+    
 
     std::thread([serviceMetaManager]() {
         // 演示定期刷新本地缓存

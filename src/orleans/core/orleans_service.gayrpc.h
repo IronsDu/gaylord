@@ -24,6 +24,7 @@
 #include <gayrpc/core/GayRpcClient.h>
 #include <gayrpc/core/GayRpcService.h>
 #include <gayrpc/core/GayRpcReply.h>
+#include <ananas/future/Future.h>
 
 namespace orleans {
 namespace core {
@@ -85,6 +86,7 @@ namespace core {
                 timeout,
                 std::move(timeoutCallback));
         }
+
         void Release(const orleans::core::OrleansReleaseRequest& request,
             const ReleaseHandle& handle,
             std::chrono::seconds timeout, 
@@ -97,54 +99,52 @@ namespace core {
                 timeout,
                 std::move(timeoutCallback));
         }
+
         
-
-        orleans::core::OrleansResponse SyncRequest(
+        ananas::Future<std::pair<orleans::core::OrleansResponse, gayrpc::core::RpcError>> SyncRequest(
             const orleans::core::OrleansRequest& request,
-            gayrpc::core::RpcError& error,
             std::chrono::seconds timeout)
         {
-            auto errorPromise = std::make_shared<std::promise<gayrpc::core::RpcError>>();
-            auto responsePointer = std::make_shared<orleans::core::OrleansResponse>();
+            ananas::Promise<std::pair<orleans::core::OrleansResponse, gayrpc::core::RpcError>> promise;
 
-            Request(request, [responsePointer, errorPromise](const orleans::core::OrleansResponse& response,
-                const gayrpc::core::RpcError& error) {
-                *responsePointer = response;
-                errorPromise->set_value(error);
-            });
+            Request(request,
+                [promise](const orleans::core::OrleansResponse& response,
+                    const gayrpc::core::RpcError& error) mutable {
+                        promise.SetValue(std::make_pair(response, error));
+                },
+                timeout,
+                [promise]() mutable {
+                    orleans::core::OrleansResponse response;
+                    gayrpc::core::RpcError error;
+                    error.setTimeout();
+                    promise.SetValue(std::make_pair(response, error));
+                });
 
-            auto errorFuture = errorPromise->get_future();
-            if (errorFuture.wait_for(timeout) != std::future_status::ready)
-            {
-                throw std::runtime_error("timeout");
-            }
-
-            error = errorFuture.get();
-            return *responsePointer;
+            return promise.GetFuture();
         }
-        orleans::core::OrleansReleaseResponse SyncRelease(
+
+        ananas::Future<std::pair<orleans::core::OrleansReleaseResponse, gayrpc::core::RpcError>> SyncRelease(
             const orleans::core::OrleansReleaseRequest& request,
-            gayrpc::core::RpcError& error,
             std::chrono::seconds timeout)
         {
-            auto errorPromise = std::make_shared<std::promise<gayrpc::core::RpcError>>();
-            auto responsePointer = std::make_shared<orleans::core::OrleansReleaseResponse>();
+            ananas::Promise<std::pair<orleans::core::OrleansReleaseResponse, gayrpc::core::RpcError>> promise;
 
-            Release(request, [responsePointer, errorPromise](const orleans::core::OrleansReleaseResponse& response,
-                const gayrpc::core::RpcError& error) {
-                *responsePointer = response;
-                errorPromise->set_value(error);
-            });
+            Release(request,
+                [promise](const orleans::core::OrleansReleaseResponse& response,
+                    const gayrpc::core::RpcError& error) mutable {
+                        promise.SetValue(std::make_pair(response, error));
+                },
+                timeout,
+                [promise]() mutable {
+                    orleans::core::OrleansReleaseResponse response;
+                    gayrpc::core::RpcError error;
+                    error.setTimeout();
+                    promise.SetValue(std::make_pair(response, error));
+                });
 
-            auto errorFuture = errorPromise->get_future();
-            if (errorFuture.wait_for(timeout) != std::future_status::ready)
-            {
-                throw std::runtime_error("timeout");
-            }
-
-            error = errorFuture.get();
-            return *responsePointer;
+            return promise.GetFuture();
         }
+
         
 
     public:
@@ -227,6 +227,7 @@ namespace core {
                 service->Request(request, replyObject, std::move(context));
             }, std::move(context));
         }
+
         static void Release_stub(RpcMeta&& meta,
             const std::string_view& data,
             const OrleansServiceService::PTR& service,
@@ -242,6 +243,7 @@ namespace core {
                 service->Release(request, replyObject, std::move(context));
             }, std::move(context));
         }
+
         
     };
 
@@ -261,18 +263,16 @@ namespace core {
         using OrleansServiceServiceHandlerMapById = std::unordered_map<uint64_t, OrleansServiceServiceRequestHandler>;
         using OrleansServiceServiceHandlerMapByStr = std::unordered_map<std::string, OrleansServiceServiceRequestHandler>;
 
-        // TODO::static unordered map
-        auto serviceHandlerMapById = std::make_shared<OrleansServiceServiceHandlerMapById>();
-        auto serviceHandlerMapByStr = std::make_shared<OrleansServiceServiceHandlerMapByStr>();
-
-        const std::string namespaceStr = "orleans.core.";
-
-        (*serviceHandlerMapById)[static_cast<uint64_t>(OrleansServiceMsgID::Request)] = OrleansServiceService::Request_stub;
-        (*serviceHandlerMapById)[static_cast<uint64_t>(OrleansServiceMsgID::Release)] = OrleansServiceService::Release_stub;
-        
-        (*serviceHandlerMapByStr)[namespaceStr+"OrleansService.Request"] = OrleansServiceService::Request_stub;
-        (*serviceHandlerMapByStr)[namespaceStr+"OrleansService.Release"] = OrleansServiceService::Release_stub;
-        
+        OrleansServiceServiceHandlerMapById serviceHandlerMapById = {
+            {static_cast<uint64_t>(OrleansServiceMsgID::Request), OrleansServiceService::Request_stub},
+            {static_cast<uint64_t>(OrleansServiceMsgID::Release), OrleansServiceService::Release_stub},
+            
+        };
+        OrleansServiceServiceHandlerMapByStr serviceHandlerMapByStr = {
+            {"orleans.core.OrleansService.Request", OrleansServiceService::Request_stub},
+            {"orleans.core.OrleansService.Release", OrleansServiceService::Release_stub},
+            
+        };
 
         auto requestStub = [service,
             serviceHandlerMapById,
@@ -289,8 +289,8 @@ namespace core {
 
             if (!meta.request_info().strmethod().empty())
             {
-                auto it = serviceHandlerMapByStr->find(meta.request_info().strmethod());
-                if (it == serviceHandlerMapByStr->end())
+                auto it = serviceHandlerMapByStr.find(meta.request_info().strmethod());
+                if (it == serviceHandlerMapByStr.end())
                 {
                     throw std::runtime_error("not found handle, method:" + meta.request_info().strmethod());
                 }
@@ -298,8 +298,8 @@ namespace core {
             }
             else
             {
-                auto it = serviceHandlerMapById->find(meta.request_info().intmethod());
-                if (it == serviceHandlerMapById->end())
+                auto it = serviceHandlerMapById.find(meta.request_info().intmethod());
+                if (it == serviceHandlerMapById.end())
                 {
                     throw std::runtime_error("not found handle, method:" + meta.request_info().intmethod());
                 }

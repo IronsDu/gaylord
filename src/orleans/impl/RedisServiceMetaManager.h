@@ -1,9 +1,10 @@
 #pragma once
 
-#include <cpp_redis/core/client.hpp>
+#include <optional>
 #include <orleans/core/ServiceMetaManager.h>
 #include <orleans/core/CoreType.h>
 #include <brynet/net/EventLoop.h>
+#include <brynet_redis/RedisClient.h>
 
 namespace orleans { namespace impl {
 
@@ -12,32 +13,46 @@ namespace orleans { namespace impl {
     class RedisServiceMetaManager : public ServiceMetaManager, public std::enable_shared_from_this<RedisServiceMetaManager>
     {
     public:
-        RedisServiceMetaManager(brynet::net::EventLoop::Ptr timerEventLoop)
+        RedisServiceMetaManager(brynet::net::EventLoop::Ptr timerEventLoop,
+            brynet::net::TcpService::Ptr tcpService,
+            brynet::net::AsyncConnector::Ptr connector)
             :
-            mRedisClient(std::make_shared<cpp_redis::client>())
+            mRedisClient(std::make_shared<SuperRedisClient>(tcpService, connector))
         {
         }
 
-        void    init(const std::string& redisIP, int port)
+        auto    init(const std::string& redisIP, int port, std::chrono::milliseconds timeout)
         {
-            mRedisClient->connect(redisIP, port, [](const std::string& host, std::size_t port, cpp_redis::client::connect_state status) {
-                if (status == cpp_redis::client::connect_state::dropped) {
-                    std::cout << "client disconnected from " << host << ":" << port << std::endl;
-                }
-            });
+            RedisConnectConfig config;
+            config.ip = redisIP;
+            config.port = port;
+            config.connectTimeout = timeout;
+            return mRedisClient->asyncConnect(config);
         }
 
     private:
-        void    registerGrain(GrainTypeName grainTypeName, std::string addr) override
+        ananas::Future<bool> registerGrain(GrainTypeName grainTypeName, 
+            std::string addr, 
+            std::chrono::milliseconds timeout) override
         {
-            mRedisClient->lpush(grainTypeName, { addr });
-            mRedisClient->sync_commit();
+            ananas::Promise<bool> promise;
+            mRedisClient
+                ->lpush(grainTypeName, { addr }, timeout)
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid())
+                    {
+                        promise.SetValue(false);
+                        return;
+                    }
+                    promise.SetValue(reply.isOk());
+                });
+            return promise.GetFuture();
         }
 
         // 查询Grain地址
-        void    queryGrainAddr(GrainTypeName grainTypeName, 
-            std::string grainUniqueName, 
-            ServiceMetaManager::QueryGrainCompleted caller) override
+        ananas::Future<std::string>    queryGrainAddr(GrainTypeName grainTypeName,
+            std::string grainUniqueName,
+            std::chrono::milliseconds timeout) override
         {
             {
                 std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
@@ -45,37 +60,42 @@ namespace orleans { namespace impl {
                     const auto it = mGrainAddrCache.find(grainUniqueName);
                     if (it != mGrainAddrCache.end())
                     {
-                        caller((*it).second);
-                        return;
+                        return ananas::MakeReadyFuture((*it).second);
                     }
                 }
                 {
                     const auto it = mGrainAddrActiveCache.find(grainUniqueName);
                     if (it != mGrainAddrActiveCache.end())
                     {
-                        caller((*it).second);
-                        return;
+                        return ananas::MakeReadyFuture((*it).second);
                     }
                 }
             }
 
+            ananas::Promise<std::string> promise;
             auto sharedThis = shared_from_this();
             auto redisClient = mRedisClient;
 
-            mRedisClient->get(grainUniqueName, [sharedThis, redisClient, grainUniqueName,caller](cpp_redis::reply& reply) {
-                if (!reply.is_null())
-                {
-                    const auto addr = reply.as_string();
+            mRedisClient
+                ->get(grainUniqueName, timeout)
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid() || reply.isNull())
+                    {
+                        promise.SetValue(std::string(""));
+                        return;
+                    }
+
+                    const std::string addr = reply;
                     sharedThis->addGrainAddrToCache(grainUniqueName, addr);
-                    caller(addr);
-                }
-            });
+                    promise.SetValue(addr);
+                });
+            return promise.GetFuture();
         }
 
         // 查询或分配Grain地址
-        void    queryOrCreateGrainAddr(GrainTypeName grainTypeName, 
-            std::string grainUniqueName, 
-            ServiceMetaManager::QueryGrainCompleted caller) override
+        ananas::Future<std::string>    queryOrCreateGrainAddr(GrainTypeName grainTypeName,
+            std::string grainUniqueName,
+            std::chrono::milliseconds timeout) override
         {
             {
                 std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
@@ -83,79 +103,94 @@ namespace orleans { namespace impl {
                     const auto it = mGrainAddrCache.find(grainUniqueName);
                     if (it != mGrainAddrCache.end())
                     {
-                        caller((*it).second);
-                        return;
+                        return ananas::MakeReadyFuture((*it).second);
                     }
                 }
                 {
                     const auto it = mGrainAddrActiveCache.find(grainUniqueName);
                     if (it != mGrainAddrActiveCache.end())
                     {
-                        caller((*it).second);
-                        return;
+                        return ananas::MakeReadyFuture((*it).second);
                     }
                 }
             }
 
+            ananas::Promise<std::string> promise;
             auto sharedThis = shared_from_this();
             auto redisClient = mRedisClient;
 
-            // 从Redis里查找路由信息
-            mRedisClient->get(grainUniqueName, [sharedThis, caller, grainUniqueName, redisClient, grainTypeName](cpp_redis::reply& reply) {
-                if (!reply.is_null())
-                {
-                    const auto addr = reply.as_string();
+            auto addr = std::make_shared<std::string>();
+
+            mRedisClient
+                ->get(grainUniqueName, timeout)
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid())
+                    {
+                        promise.SetValue(std::string(""));
+                        return ananas::Future<RedisReply>();
+                    }
+                    if (!reply.isNull())
+                    {
+                        const std::string addr = reply;
+                        sharedThis->addGrainAddrToCache(grainUniqueName, addr);
+                        promise.SetValue(addr);
+
+                        return ananas::Future<RedisReply>();
+                    }
+
+                    return redisClient->lrange(grainTypeName, 0, -1, timeout);
+                })
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid() || !reply.isArray())
+                    {
+                        promise.SetValue(std::string(""));
+                        return ananas::Future<RedisReply>();
+                    }
+
+                    const std::vector<RedisReply> addrs = reply;
+                    if (addrs.empty())
+                    {
+                        promise.SetValue(std::string(""));
+                        return ananas::Future<RedisReply>();
+                    }
+
+                    *addr = (std::string)(addrs[std::rand() % addrs.size()]);
+                    return redisClient->setnx(grainUniqueName, *addr, timeout);
+                })
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid() || !reply.isOk() || !reply.isInteger())
+                    {
+                        promise.SetValue(std::string(""));
+                        return ananas::Future<RedisReply>();
+                    }
+                    const int64_t num = reply;
+                    if (num == 1)
+                    {
+                        sharedThis->addGrainAddrToCache(grainUniqueName, *addr);
+                        promise.SetValue(*addr);
+                        return ananas::Future<RedisReply>();
+                    }
+                    else if (num == 0)
+                    {
+                        return redisClient->get(grainUniqueName, timeout);
+                    }
+                    else
+                    {
+                        return ananas::Future<RedisReply>();
+                    }
+                })
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid() || reply.isNull() || !reply.isOk())
+                    {
+                        promise.SetValue(std::string(""));
+                        return;
+                    }
+
+                    const std::string addr = reply;
                     sharedThis->addGrainAddrToCache(grainUniqueName, addr);
-                    caller(addr);
-                }
-                else
-                {
-                    // 若不存在则获取处理此类型服务的所有服务器
-                    redisClient->lrange(grainTypeName, 0, -1, [=](cpp_redis::reply& reply) {
-                        if (!reply.is_array())
-                        {
-                            return;
-                        }
-                        auto addrs = reply.as_array();
-                        if(addrs.empty())
-                        {
-                            return;
-                        }
-
-                        //随机一个节点服务器
-                        auto addr = addrs[std::rand() % addrs.size()].as_string();
-                        redisClient->setnx(grainUniqueName, addr, [=](cpp_redis::reply& reply) {
-                            if (!reply.ok() || !reply.is_integer())
-                            {
-                                return;
-                            }
-                            if (reply.as_integer() == 1)
-                            {
-                                sharedThis->addGrainAddrToCache(grainUniqueName, addr);
-                                caller(addr);
-                                return;
-                            }
-                            else if (reply.as_integer() == 0)
-                            {
-                                redisClient->get(grainUniqueName, [=](cpp_redis::reply& reply) {
-                                    if (reply.is_null())
-                                    {
-                                        return;
-                                    }
-
-                                    const auto addr = reply.as_string();
-                                    sharedThis->addGrainAddrToCache(grainUniqueName, addr);
-                                    caller(addr);
-                                });
-                                redisClient->commit();
-                            }
-                        });
-                        redisClient->commit();
-                    });
-                    redisClient->commit();
-                }
-            });
-            redisClient->commit();
+                    promise.SetValue(addr);
+                });
+            return promise.GetFuture();
         }
 
         void    processAddrStatus(std::string grainUniqueName, std::string addr, bool isGood) override
@@ -177,29 +212,50 @@ namespace orleans { namespace impl {
         }
 
         // 存活某Grain
-        void    activeGrain(std::string grainUniqueName) override
+        virtual ananas::Future<bool>    activeGrain(std::string grainUniqueName,
+            std::chrono::seconds expire,
+            std::chrono::milliseconds timeout) override
         {
-            mRedisClient->expire(grainUniqueName, 20);
-            mRedisClient->commit();
+            ananas::Promise<bool> promise;
+            mRedisClient->expire(grainUniqueName, expire.count(), timeout)
+                .Then([=](RedisReply r) mutable {
+                    if (!r.isValid())
+                    {
+                        promise.SetValue(false);
+                        return;
+                    }
+                    promise.SetValue(r.isOk());
+                });
+            return promise.GetFuture();
         }
 
-        void    createGrainByAddr(std::string grainUniqueName, std::string addr) override
+        virtual ananas::Future<bool>    createGrainByAddr(std::string grainUniqueName, 
+            std::string addr, 
+            std::chrono::milliseconds timeout) override
         {
             {
                 std::lock_guard<std::mutex> lck(mGrainAddrCacheGuard);
                 if (mGrainAddrCache.find(grainUniqueName) != mGrainAddrCache.end())
                 {
-                    return;
+                    return ananas::MakeReadyFuture<bool>(true);
                 }
                 if (mGrainAddrActiveCache.find(grainUniqueName) != mGrainAddrActiveCache.end())
                 {
-                    return;
+                    return ananas::MakeReadyFuture<bool>(true);
                 }
             }
 
-            mRedisClient->setnx(grainUniqueName, addr, [=](cpp_redis::reply& reply) {
-            });
-            mRedisClient->commit();
+            ananas::Promise<bool> promise;
+            mRedisClient->setnx(grainUniqueName, addr, timeout)
+                .Then([=](RedisReply reply) mutable {
+                    if (!reply.isValid())
+                    {
+                        promise.SetValue(false);
+                        return;
+                    }
+                    promise.SetValue(reply.isOk());
+                });
+            return promise.GetFuture();
         }
 
         void    updateGrairAddrList()
@@ -216,7 +272,7 @@ namespace orleans { namespace impl {
         }
 
     private:
-        const std::shared_ptr<cpp_redis::client>    mRedisClient;
+        const SuperRedisClient::Ptr                 mRedisClient;
         std::map<std::string, std::string>          mGrainAddrCache;        // Grain缓存
         std::map<std::string, std::string>          mGrainAddrActiveCache;  // 最近确认活跃的Grain
         std::mutex                                  mGrainAddrCacheGuard;

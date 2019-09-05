@@ -1,3 +1,5 @@
+#include <array>
+
 #include "./pb/echo_service.gayrpc.h"
 
 #include <orleans/impl/RedisServiceMetaManager.h>
@@ -15,15 +17,13 @@ int main()
 {
     brynet::net::base::InitSocket();
 
-    auto mainLoop = std::make_shared<brynet::net::EventLoop>();
-    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop);
-    redisServiceMetaManager->init("127.0.0.1", 6379);
-
     auto service = brynet::net::TcpService::Create();
-    auto connector = brynet::net::AsyncConnector::Create();
-
     service->startWorkerThread(1);
+    auto connector = brynet::net::AsyncConnector::Create();
     connector->startWorkerThread();
+
+    auto mainLoop = std::make_shared<brynet::net::EventLoop>();
+    auto redisServiceMetaManager = std::make_shared<RedisServiceMetaManager>(mainLoop, service, connector);
 
     auto clientOrleansRuntime = std::make_shared<ClientOrleansRuntime>(service,
         connector,
@@ -39,20 +39,52 @@ int main()
         },
         std::vector< UnaryServerInterceptor>{},
         std::vector< UnaryServerInterceptor>{});
-    // 获取Grain
-    auto echoServer1Grain = clientOrleansRuntime->takeGrain<dodo::test::EchoServerClient>("1");
 
-    for(auto i = 0; i < 10; i++)
+    redisServiceMetaManager->init("127.0.0.1", 6379, std::chrono::seconds(10))
+        .Then([=](bool result) {
+            if (!result)
+            {
+                return;
+            }
+
+            mainLoop->runAsyncFunctor([=]() {
+                // 获取Grain
+                auto echoServer1Grain = clientOrleansRuntime->takeGrain<dodo::test::EchoServerClient>("1");
+
+                dodo::test::EchoRequest request;
+                request.set_message(hello);
+                echoServer1Grain
+                    ->SyncEcho(request, std::chrono::seconds(1))
+                    .Then([echoServer1Grain](std::pair<dodo::test::EchoResponse, gayrpc::core::RpcError> result) {
+
+                        std::cout << result.first.message() << std::endl;
+                        dodo::test::EchoRequest request;
+                        request.set_message(hello);
+                        return echoServer1Grain
+                            ->SyncEcho(request, std::chrono::seconds(1));
+                    })
+                    .Then([](std::pair<dodo::test::EchoResponse, gayrpc::core::RpcError> result) {
+                        std::cout << result.first.message() << std::endl;
+                    });
+
+                for (auto i = 0; i < 10; i++)
+                {
+                    dodo::test::EchoRequest request;
+                    request.set_message(hello);
+                    auto responseFuture = echoServer1Grain->SyncEcho(request, std::chrono::seconds(10));
+                    auto response = responseFuture.Wait();
+                    std::cout << response.Value().first.message() << std::endl;
+                    assert(response.Value().first.message() == world);
+                }
+
+                clientOrleansRuntime->releaseGrain<dodo::test::EchoServerClient>("1");
+            });
+        });
+
+    for (;;)
     {
-        dodo::test::EchoRequest request;
-        request.set_message(hello);
-        gayrpc::core::RpcError error;
-        auto response = echoServer1Grain->SyncEcho(request, error, std::chrono::seconds(10));
-        std::cout << response.message() << std::endl;
-        assert(response.message() == world);
+        mainLoop->loop(std::chrono::milliseconds(100).count());
     }
-
-    clientOrleansRuntime->releaseGrain<dodo::test::EchoServerClient>("1");
-
+    std::cin.get();
     return 0;
 }

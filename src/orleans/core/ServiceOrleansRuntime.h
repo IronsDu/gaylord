@@ -37,7 +37,9 @@ namespace orleans { namespace core {
         {
         }
 
-        gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(const std::string& grainType, const std::string& grainUniqueName)
+        gayrpc::core::RpcTypeHandleManager::PTR findOrCreateServiceGrain(
+            const std::string& grainType, 
+            const std::string& grainUniqueName)
         {
             gayrpc::core::RpcTypeHandleManager::PTR grain;
 
@@ -80,13 +82,12 @@ namespace orleans { namespace core {
 
         // 注册GrainType服务
         template<typename GrainType>
-        void registerServiceGrain(std::string addr)
+        auto registerServiceGrain(std::string addr, std::chrono::milliseconds timeout)
         {
             std::lock_guard<std::mutex> lck(mGrainsGuard);
 
             const auto typeName = GrainType::GetServiceTypeName();
 
-            mServiceMetaManager->registerGrain(typeName, addr);
             mServceGrainCreators[typeName] = [](std::string grainUniqueName) {
                 // 创建Grain 服务
                 auto grainRpcHandlerManager = std::make_shared<gayrpc::core::RpcTypeHandleManager>();
@@ -121,15 +122,17 @@ namespace orleans { namespace core {
 
                 return grainRpcHandlerManager;
             };
+
+            return mServiceMetaManager->registerGrain(typeName, addr, timeout);
         }
 
         // 强制将某类型grain激活到某地址
         template<typename GrainType>
-        void createGrainByAddr(std::string grainID, std::string addr)
+        auto createGrainByAddr(std::string grainID, std::string addr, std::chrono::milliseconds timeout)
         {
             const auto grainTypeName = GrainType::GetServiceTypeName();
             const auto grainUniqueName = Utils::MakeGrainUniqueName(grainTypeName, grainID);
-            mServiceMetaManager->createGrainByAddr(grainUniqueName, addr);
+            return mServiceMetaManager->createGrainByAddr(grainUniqueName, addr, timeout);
         }
 
     private:
@@ -145,12 +148,11 @@ namespace orleans { namespace core {
                 }
             }
 
-            mServiceMetaManager->activeGrain(grainUniqueName);
+            mServiceMetaManager->activeGrain(grainUniqueName, std::chrono::seconds(10), std::chrono::seconds(10));
 
             auto sharedThis = shared_from_this();
             mTimerEventLoop->runAfter(std::chrono::seconds(10), [sharedThis, grainUniqueName]() {
                 sharedThis->onActiveTimer(grainUniqueName);
-                    
             });
         }
 
